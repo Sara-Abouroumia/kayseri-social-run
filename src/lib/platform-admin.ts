@@ -1,0 +1,295 @@
+import { desc, eq, or, sql } from "drizzle-orm";
+
+import { db } from "@/db";
+import { user } from "@/db/schema/auth";
+import { platformAdmin } from "@/db/schema/platform-admin";
+
+const PLATFORM_ADMIN_RELATION = "platform_admin";
+
+export const PLATFORM_ADMIN_MIGRATION_HINT =
+  "Run `npm run db:migrate` (with DATABASE_URL set) so the platform_admin table exists on Neon.";
+
+let loggedMissingPlatformAdminTable = false;
+
+function isPlatformAdminTableMissingError(error: unknown): boolean {
+  const walk = (e: unknown): boolean => {
+    if (e == null || typeof e !== "object") return false;
+    const o = e as Record<string, unknown>;
+    if (o.code === "42P01") return true;
+    const msg = String(o.message ?? "");
+    if (
+      new RegExp(
+        `relation\\s+"${PLATFORM_ADMIN_RELATION}"\\s+does not exist`,
+        "i",
+      ).test(msg)
+    ) {
+      return true;
+    }
+    if (o.cause != null) return walk(o.cause);
+    return false;
+  };
+  return walk(error);
+}
+
+function warnMissingPlatformAdminTableOnce(): void {
+  if (loggedMissingPlatformAdminTable) return;
+  loggedMissingPlatformAdminTable = true;
+  console.warn(`[kayseri-social-run] ${PLATFORM_ADMIN_MIGRATION_HINT}`);
+}
+
+export function parseBootstrapAdminEmails(): string[] {
+  const raw = process.env.PLATFORM_ADMIN_EMAILS?.trim();
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isBootstrapAdminEmail(email: string): boolean {
+  const normalized = email.trim().toLowerCase();
+  return parseBootstrapAdminEmails().includes(normalized);
+}
+
+function lowerEmailMatchesAny(emails: string[]) {
+  if (emails.length === 0) return sql`false`;
+  if (emails.length === 1) return sql`lower(${user.email}) = ${emails[0]}`;
+  return or(...emails.map((e) => sql`lower(${user.email}) = ${e}`));
+}
+
+export async function isPlatformAdmin(
+  userId: string,
+  email: string,
+): Promise<boolean> {
+  if (isBootstrapAdminEmail(email)) return true;
+
+  try {
+    const row = await db
+      .select({ userId: platformAdmin.userId })
+      .from(platformAdmin)
+      .where(eq(platformAdmin.userId, userId))
+      .limit(1);
+
+    return row.length > 0;
+  } catch (e) {
+    if (isPlatformAdminTableMissingError(e)) {
+      warnMissingPlatformAdminTableOnce();
+      return false;
+    }
+    throw e;
+  }
+}
+
+export async function getPlatformAdminUserIds(): Promise<Set<string>> {
+  const ids = new Set<string>();
+
+  let dbRows: { userId: string }[] = [];
+  try {
+    dbRows = await db
+      .select({ userId: platformAdmin.userId })
+      .from(platformAdmin);
+  } catch (e) {
+    if (isPlatformAdminTableMissingError(e)) {
+      warnMissingPlatformAdminTableOnce();
+    } else {
+      throw e;
+    }
+  }
+
+  for (const r of dbRows) ids.add(r.userId);
+
+  const bootstrapEmails = parseBootstrapAdminEmails();
+  if (bootstrapEmails.length === 0) return ids;
+
+  const bootstrapUsers = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(lowerEmailMatchesAny(bootstrapEmails));
+
+  for (const u of bootstrapUsers) ids.add(u.id);
+
+  return ids;
+}
+
+export type ListedPlatformAdmin = {
+  userId: string;
+  email: string;
+  name: string;
+  source: "bootstrap" | "database";
+  removable: boolean;
+};
+
+export async function listPlatformAdmins(): Promise<ListedPlatformAdmin[]> {
+  const bootstrapEmails = parseBootstrapAdminEmails();
+
+  let dbJoined: {
+    userId: string;
+    email: string;
+    name: string;
+  }[] = [];
+
+  try {
+    dbJoined = await db
+      .select({
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+      })
+      .from(platformAdmin)
+      .innerJoin(user, eq(platformAdmin.userId, user.id))
+      .orderBy(desc(platformAdmin.createdAt));
+  } catch (e) {
+    if (isPlatformAdminTableMissingError(e)) {
+      warnMissingPlatformAdminTableOnce();
+    } else {
+      throw e;
+    }
+  }
+
+  const byId = new Map<string, ListedPlatformAdmin>();
+
+  for (const row of dbJoined) {
+    const bootstrap = isBootstrapAdminEmail(row.email);
+    byId.set(row.userId, {
+      userId: row.userId,
+      email: row.email,
+      name: row.name,
+      source: bootstrap ? "bootstrap" : "database",
+      removable: !bootstrap,
+    });
+  }
+
+  if (bootstrapEmails.length > 0) {
+    const bootstrapUsers = await db
+      .select({ id: user.id, email: user.email, name: user.name })
+      .from(user)
+      .where(lowerEmailMatchesAny(bootstrapEmails));
+
+    for (const u of bootstrapUsers) {
+      if (byId.has(u.id)) continue;
+      byId.set(u.id, {
+        userId: u.id,
+        email: u.email,
+        name: u.name,
+        source: "bootstrap",
+        removable: false,
+      });
+    }
+  }
+
+  return [...byId.values()].sort((a, b) =>
+    a.email.localeCompare(b.email, undefined, { sensitivity: "base" }),
+  );
+}
+
+export async function findUserIdByEmail(
+  email: string,
+): Promise<string | null> {
+  const normalized = email.trim().toLowerCase();
+  const rows = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(sql`lower(${user.email}) = ${normalized}`)
+    .limit(1);
+  return rows[0]?.id ?? null;
+}
+
+export async function grantPlatformAdmin(params: {
+  targetUserId: string;
+  grantedByUserId: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { targetUserId, grantedByUserId } = params;
+
+  const target = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, targetUserId))
+    .limit(1);
+  if (!target[0]) return { ok: false, message: "User not found." };
+
+  if (await isPlatformAdmin(targetUserId, target[0].email)) {
+    return { ok: false, message: "That user is already a platform admin." };
+  }
+
+  try {
+    await db.insert(platformAdmin).values({
+      userId: targetUserId,
+      createdAt: new Date(),
+      grantedByUserId,
+    });
+  } catch (e) {
+    if (isPlatformAdminTableMissingError(e)) {
+      warnMissingPlatformAdminTableOnce();
+      return { ok: false, message: PLATFORM_ADMIN_MIGRATION_HINT };
+    }
+    throw e;
+  }
+
+  return { ok: true };
+}
+
+export async function revokePlatformAdminDbRow(params: {
+  targetUserId: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { targetUserId } = params;
+
+  const target = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, targetUserId))
+    .limit(1);
+  if (!target[0]) return { ok: false, message: "User not found." };
+
+  if (isBootstrapAdminEmail(target[0].email)) {
+    return {
+      ok: false,
+      message:
+        "This admin is defined in PLATFORM_ADMIN_EMAILS. Remove them from environment config instead.",
+    };
+  }
+
+  let inDb: { userId: string }[] = [];
+  try {
+    inDb = await db
+      .select({ userId: platformAdmin.userId })
+      .from(platformAdmin)
+      .where(eq(platformAdmin.userId, targetUserId))
+      .limit(1);
+  } catch (e) {
+    if (isPlatformAdminTableMissingError(e)) {
+      warnMissingPlatformAdminTableOnce();
+      return { ok: false, message: PLATFORM_ADMIN_MIGRATION_HINT };
+    }
+    throw e;
+  }
+
+  if (!inDb[0]) {
+    return {
+      ok: false,
+      message: "That user is not in the database admin list.",
+    };
+  }
+
+  const before = await getPlatformAdminUserIds();
+  before.delete(targetUserId);
+  if (before.size === 0) {
+    return {
+      ok: false,
+      message: "Cannot remove the last platform admin.",
+    };
+  }
+
+  try {
+    await db
+      .delete(platformAdmin)
+      .where(eq(platformAdmin.userId, targetUserId));
+  } catch (e) {
+    if (isPlatformAdminTableMissingError(e)) {
+      warnMissingPlatformAdminTableOnce();
+      return { ok: false, message: PLATFORM_ADMIN_MIGRATION_HINT };
+    }
+    throw e;
+  }
+
+  return { ok: true };
+}

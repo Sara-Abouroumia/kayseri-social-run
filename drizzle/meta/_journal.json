@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1778542744458,
+      "tag": "0000_petite_jamie_braddock",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778546433658,
+      "tag": "0001_events_created_by_set_null",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778715002441,
+      "tag": "0002_platform_admin",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778716206160,
+      "tag": "0003_platform_admin_invite",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778721419507,
+      "tag": "0004_events_share_clubs",
+      "breakpoints": true
+    }
+  ]
+}
