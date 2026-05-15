@@ -6,7 +6,14 @@ import { isPlatformAdmin } from "@/lib/platform-admin";
 
 export type UpcomingDashboardEvent = Pick<
   InferSelectModel<typeof events>,
-  "id" | "title" | "shareSlug" | "startsAt" | "activityType" | "visibility" | "coverImageUrl"
+  | "id"
+  | "title"
+  | "shareSlug"
+  | "startsAt"
+  | "activityType"
+  | "activityTypeEmoji"
+  | "visibility"
+  | "coverImageUrl"
 >;
 
 export async function getUpcomingEventsForDashboard(params: {
@@ -26,6 +33,7 @@ export async function getUpcomingEventsForDashboard(params: {
       shareSlug: events.shareSlug,
       startsAt: events.startsAt,
       activityType: events.activityType,
+      activityTypeEmoji: events.activityTypeEmoji,
       visibility: events.visibility,
       coverImageUrl: events.coverImageUrl,
     })

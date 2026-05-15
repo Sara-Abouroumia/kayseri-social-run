@@ -5,13 +5,24 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import type { Messages } from "@/i18n/messages/en";
 
-export default function LoginPage() {
+type LoginFormProps = {
+  defaultNext: string;
+  copy: Messages["login"];
+};
+
+export function LoginForm({ defaultNext, copy }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const registerHref =
+    defaultNext === "/dashboard"
+      ? "/register"
+      : `/register?next=${encodeURIComponent(defaultNext)}`;
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -22,7 +33,7 @@ export default function LoginPage() {
       const { error } = await authClient.signIn.email({
         email,
         password,
-        callbackURL: "/dashboard",
+        callbackURL: defaultNext,
       });
 
       if (error) {
@@ -31,16 +42,14 @@ export default function LoginPage() {
             ? (error as { status?: number }).status
             : undefined;
         if (status === 403) {
-          setErrorMessage(
-            "Please verify your email first. Open the link we sent you, then try signing in again.",
-          );
+          setErrorMessage(copy.verifyFirst);
           return;
         }
-        setErrorMessage(error.message ?? "Sign in failed");
+        setErrorMessage(error.message ?? copy.signInFailed);
         return;
       }
 
-      router.push("/dashboard");
+      router.push(defaultNext);
       router.refresh();
     } finally {
       setIsSubmitting(false);
@@ -49,7 +58,7 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-white px-6">
-      <h1 className="mb-6 text-3xl font-bold">Login</h1>
+      <h1 className="mb-6 text-3xl font-bold">{copy.title}</h1>
 
       <form onSubmit={(e) => void handleLogin(e)} className="space-y-4">
         {errorMessage ? (
@@ -63,7 +72,7 @@ export default function LoginPage() {
 
         <input
           className="w-full rounded border p-3"
-          placeholder="Email"
+          placeholder={copy.email}
           type="email"
           autoComplete="email"
           value={email}
@@ -73,7 +82,7 @@ export default function LoginPage() {
 
         <input
           className="w-full rounded border p-3"
-          placeholder="Password"
+          placeholder={copy.password}
           type="password"
           autoComplete="current-password"
           value={password}
@@ -86,14 +95,14 @@ export default function LoginPage() {
           disabled={isSubmitting}
           className="w-full rounded bg-black p-3 text-white disabled:opacity-60"
         >
-          {isSubmitting ? "Signing in…" : "Login"}
+          {isSubmitting ? copy.signingIn : copy.submit}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-zinc-600">
-        No account?{" "}
-        <Link href="/register" className="font-medium text-zinc-900 underline">
-          Register
+        {copy.noAccount}{" "}
+        <Link href={registerHref} className="font-medium text-zinc-900 underline">
+          {copy.register}
         </Link>
       </p>
     </main>

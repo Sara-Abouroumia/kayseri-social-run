@@ -4,6 +4,9 @@ import { desc } from "drizzle-orm";
 
 import { db } from "@/db";
 import { events } from "@/db/schema/events";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getLocale } from "@/i18n/get-locale";
+import { siteMainClass } from "@/lib/layout";
 import { getSiteUrl } from "@/lib/site-url";
 
 import { ShareUrlButton } from "@/app/dashboard/share-url-button";
@@ -22,6 +25,10 @@ function formatWhen(d: Date) {
 }
 
 export default async function AdminEventsPage() {
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+  const d = dict.dashboard;
+
   const rows = await db
     .select({
       id: events.id,
@@ -36,7 +43,7 @@ export default async function AdminEventsPage() {
   const siteOrigin = getSiteUrl();
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className={siteMainClass}>
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -85,7 +92,9 @@ export default async function AdminEventsPage() {
               <div className="flex shrink-0 flex-wrap items-center gap-2 sm:gap-3">
                 <ShareUrlButton
                   url={`${siteOrigin}/e/${e.shareSlug}`}
-                  label={`Copy share link for ${e.title}`}
+                  label={`${d.copyShareLink} ${e.title}`}
+                  shareLabel={d.share}
+                  copiedLabel={d.copied}
                 />
                 <Link
                   href={`/e/${e.shareSlug}`}

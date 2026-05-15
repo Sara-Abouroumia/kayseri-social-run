@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { account, session, user, verification } from "@/db/schema/auth";
@@ -24,6 +25,17 @@ export const auth = betterAuth({
     ? { trustedOrigins: extraTrustedOrigins }
     : {}),
 
+  user: {
+    additionalFields: {
+      gender: {
+        type: "string",
+        required: false,
+        defaultValue: "female",
+        input: true,
+      },
+    },
+  },
+
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
@@ -33,6 +45,20 @@ export const auth = betterAuth({
       verification,
     },
   }),
+
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (createdUser) => {
+          const now = new Date();
+          await db
+            .update(user)
+            .set({ genderChosenAt: now, updatedAt: now })
+            .where(eq(user.id, createdUser.id));
+        },
+      },
+    },
+  },
 
   emailAndPassword: {
     enabled: true,

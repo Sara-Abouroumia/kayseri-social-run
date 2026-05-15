@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
-import Link from "next/link";
 
+import { AppHeader } from "@/components/app-header";
+import { AuthenticatedDashboardHeader } from "@/components/authenticated-dashboard-header";
 import { auth } from "@/lib/auth";
 
 export default async function PublicEventShareLayout({
@@ -13,21 +14,9 @@ export default async function PublicEventShareLayout({
   });
 
   return (
-    <>
-      {session?.user ? (
-        <div className="border-b border-zinc-200 bg-zinc-100 px-4 py-2.5 text-center text-sm text-zinc-800">
-          <span className="text-zinc-600">Signed in as </span>
-          <span className="font-medium text-zinc-900">{session.user.email}</span>
-          <span className="text-zinc-500"> · </span>
-          <Link
-            href="/dashboard"
-            className="font-medium text-zinc-900 underline decoration-zinc-400 underline-offset-2 hover:decoration-zinc-900"
-          >
-            Back to dashboard
-          </Link>
-        </div>
-      ) : null}
-      {children}
-    </>
+    <div className="flex min-h-screen min-w-0 flex-col bg-white">
+      {session?.user ? <AuthenticatedDashboardHeader /> : <AppHeader />}
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
   );
 }

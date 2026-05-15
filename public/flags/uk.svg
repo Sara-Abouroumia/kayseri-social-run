@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 36" role="img" aria-label="United Kingdom">
+  <clipPath id="uk-bounds">
+    <path d="M0,0 H60 V36 H0 Z" />
+  </clipPath>
+  <clipPath id="uk-red-saltire">
+    <path d="M30,18 60,0 V18 Z M30,18 60,36 V18 Z M30,18 0,36 V18 Z M30,18 0,0 V18 Z" />
+  </clipPath>
+  <g clip-path="url(#uk-bounds)">
+    <rect width="60" height="36" fill="#012169" />
+    <path d="M0,0 60,36 M60,0 0,36" stroke="#FFF" stroke-width="7.2" fill="none" />
+    <path
+      d="M0,0 60,36 M60,0 0,36"
+      clip-path="url(#uk-red-saltire)"
+      stroke="#C8102E"
+      stroke-width="4.8"
+      fill="none"
+    />
+    <path d="M30,0 V36 M0,18 H60" stroke="#FFF" stroke-width="12" fill="none" />
+    <path d="M30,0 V36 M0,18 H60" stroke="#C8102E" stroke-width="7.2" fill="none" />
+  </g>
+</svg>

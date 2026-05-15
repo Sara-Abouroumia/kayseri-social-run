@@ -2,23 +2,40 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import type { Messages } from "@/i18n/messages/en";
 
 type RegisterFormProps = {
-  /** When set, user must register with this exact email (from admin invite link). */
   inviteLockedEmail: string | null;
+  defaultNext: string;
+  copy: Messages["register"];
 };
 
-export function RegisterForm({ inviteLockedEmail }: RegisterFormProps) {
+export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterFormProps) {
   const router = useRouter();
+  const genderOptions = useMemo(
+    () =>
+      [
+        { value: "female" as const, label: copy.femaleLabel },
+        { value: "male" as const, label: copy.maleLabel },
+      ] as const,
+    [copy.femaleLabel, copy.maleLabel],
+  );
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState(inviteLockedEmail ?? "");
   const [password, setPassword] = useState("");
+  const [gender, setGender] = useState<(typeof genderOptions)[number]["value"]>("female");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loginHref =
+    defaultNext === "/dashboard"
+      ? "/login"
+      : `/login?next=${encodeURIComponent(defaultNext)}`;
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -29,7 +46,7 @@ export function RegisterForm({ inviteLockedEmail }: RegisterFormProps) {
     try {
       if (inviteLockedEmail && email.trim().toLowerCase() !== inviteLockedEmail) {
         setErrorMessage(
-          `Use the invited email address (${inviteLockedEmail}) to complete this invitation.`,
+          `${copy.inviteEmailUse} (${inviteLockedEmail}) ${copy.inviteEmailSuffix}`,
         );
         return;
       }
@@ -38,26 +55,24 @@ export function RegisterForm({ inviteLockedEmail }: RegisterFormProps) {
         name,
         email,
         password,
-        callbackURL: "/dashboard",
-      });
+        gender,
+        callbackURL: defaultNext,
+      } as Parameters<typeof authClient.signUp.email>[0] & { gender: typeof gender });
 
       if (error) {
-        setErrorMessage(error.message ?? "Could not create account");
+        setErrorMessage(error.message ?? copy.errorGeneric);
         return;
       }
 
       const session = await authClient.getSession();
       if (session.data?.user?.emailVerified) {
-        router.push("/dashboard");
+        router.push(defaultNext);
         router.refresh();
         return;
       }
 
       setSuccessMessage(
-        "Check your inbox for a verification link. You must verify your email before you can sign in. " +
-          (inviteLockedEmail
-            ? "After verification, your admin access will turn on automatically."
-            : ""),
+        copy.checkInbox + (inviteLockedEmail ? ` ${copy.afterVerifyAdmin}` : ""),
       );
     } finally {
       setIsSubmitting(false);
@@ -66,12 +81,11 @@ export function RegisterForm({ inviteLockedEmail }: RegisterFormProps) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-white px-6">
-      <h1 className="mb-6 text-3xl font-bold">Create account</h1>
+      <h1 className="mb-6 text-3xl font-bold">{copy.title}</h1>
 
       {inviteLockedEmail ? (
         <p className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
-          You are registering from an <strong>admin invitation</strong>. Use the
-          email address below (it is fixed to match your invite).
+          {copy.inviteBanner}
         </p>
       ) : null}
 
@@ -91,15 +105,15 @@ export function RegisterForm({ inviteLockedEmail }: RegisterFormProps) {
             role="status"
           >
             {successMessage}{" "}
-            <Link href="/login" className="font-medium underline">
-              Go to login
+            <Link href={loginHref} className="font-medium underline">
+              {copy.goToLogin}
             </Link>
           </p>
         ) : null}
 
         <input
           className="w-full rounded border p-3"
-          placeholder="Name"
+          placeholder={copy.name}
           autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -109,7 +123,7 @@ export function RegisterForm({ inviteLockedEmail }: RegisterFormProps) {
 
         <input
           className="w-full rounded border p-3"
-          placeholder="Email"
+          placeholder={copy.email}
           type="email"
           autoComplete="email"
           value={email}
@@ -121,9 +135,32 @@ export function RegisterForm({ inviteLockedEmail }: RegisterFormProps) {
           disabled={!!successMessage}
         />
 
+        <div>
+          <label htmlFor="gender" className="mb-1 block text-sm font-medium text-zinc-800">
+            {copy.gender}
+          </label>
+          <select
+            id="gender"
+            className="w-full rounded border p-3"
+            value={gender}
+            onChange={(e) =>
+              setGender(e.target.value as (typeof genderOptions)[number]["value"])
+            }
+            required
+            disabled={!!successMessage}
+          >
+            {genderOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-zinc-500">{copy.genderHint}</p>
+        </div>
+
         <input
           className="w-full rounded border p-3"
-          placeholder="Password"
+          placeholder={copy.password}
           type="password"
           autoComplete="new-password"
           value={password}
@@ -138,14 +175,14 @@ export function RegisterForm({ inviteLockedEmail }: RegisterFormProps) {
           disabled={isSubmitting || !!successMessage}
           className="w-full rounded bg-black p-3 text-white disabled:opacity-60"
         >
-          {isSubmitting ? "Creating account…" : "Register"}
+          {isSubmitting ? copy.creating : copy.submit}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-zinc-600">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium text-zinc-900 underline">
-          Login
+        {copy.hasAccount}{" "}
+        <Link href={loginHref} className="font-medium text-zinc-900 underline">
+          {copy.login}
         </Link>
       </p>
     </main>

@@ -36,6 +36,62 @@
       "when": 1778721419507,
       "tag": "0004_events_share_clubs",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778771456344,
+      "tag": "0005_bitter_invaders",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778772795707,
+      "tag": "0006_friendly_sunfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778791142520,
+      "tag": "0007_user_preferred_locale",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778791538779,
+      "tag": "0008_event_activity_type_emoji",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778792110458,
+      "tag": "0009_event_cost_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778792848673,
+      "tag": "0010_site_about_page",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1778852833211,
+      "tag": "0011_clear_plazm",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1778868000000,
+      "tag": "0012_user_gender_chosen_at",
+      "breakpoints": true
     }
   ]
 }

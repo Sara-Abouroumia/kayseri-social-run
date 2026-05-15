@@ -12,6 +12,9 @@ import {
   type EventFormInitial,
 } from "@/app/dashboard/admin/events/event-form-initial";
 
+import { EventTypeMetricsSection } from "./event-type-metrics-section";
+import { RegistrationFormBuilder } from "./registration-form-builder";
+
 function inputClass() {
   return "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900";
 }
@@ -128,19 +131,15 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
             className={`${inputClass()} mt-1`}
           />
         </div>
-        <div>
-          <label className={labelClass()} htmlFor="activityType">
-            Activity type
-          </label>
-          <input
-            id="activityType"
-            name="activityType"
-            maxLength={80}
-            defaultValue={base.activityType}
-            placeholder="run, walk, hike, social…"
-            className={`${inputClass()} mt-1`}
-          />
-        </div>
+        <EventTypeMetricsSection
+          activityType={base.activityType}
+          activityTypeEmoji={base.activityTypeEmoji}
+          distanceKm={base.distanceKm}
+          paceLabel={base.paceLabel}
+          difficulty={base.difficulty}
+          costKind={base.costKind}
+          costNotes={base.costNotes}
+        />
         <div>
           <label className={labelClass()} htmlFor="description">
             Notes / description
@@ -260,46 +259,6 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
         <h2 id="run-heading" className="text-lg font-medium text-zinc-900">
           Activity details
         </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label className={labelClass()} htmlFor="distanceKm">
-              Distance (km)
-            </label>
-            <input
-              id="distanceKm"
-              name="distanceKm"
-              inputMode="decimal"
-              defaultValue={base.distanceKm}
-              className={`${inputClass()} mt-1`}
-            />
-          </div>
-          <div>
-            <label className={labelClass()} htmlFor="paceLabel">
-              Pace
-            </label>
-            <input
-              id="paceLabel"
-              name="paceLabel"
-              maxLength={120}
-              defaultValue={base.paceLabel}
-              placeholder="e.g. ~7:30/km"
-              className={`${inputClass()} mt-1`}
-            />
-          </div>
-          <div>
-            <label className={labelClass()} htmlFor="difficulty">
-              Difficulty
-            </label>
-            <input
-              id="difficulty"
-              name="difficulty"
-              maxLength={120}
-              defaultValue={base.difficulty}
-              placeholder="e.g. beginner-friendly"
-              className={`${inputClass()} mt-1`}
-            />
-          </div>
-        </div>
         <div>
           <label className={labelClass()} htmlFor="requiredItems">
             Required items
@@ -366,6 +325,12 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
           />
         </div>
       </section>
+
+      <RegistrationFormBuilder
+        initialQuestions={base.registrationQuestions}
+        initialApprovalMode={base.joinApprovalMode}
+        initialApprovalConfig={base.joinApprovalConfig}
+      />
 
       <section className="space-y-4" aria-labelledby="cover-heading">
         <h2 id="cover-heading" className="text-lg font-medium text-zinc-900">

@@ -5,11 +5,17 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { events } from "@/db/schema/events";
+import { siteMainClass } from "@/lib/layout";
 import { getSiteUrl } from "@/lib/site-url";
 
 import { DeleteEventDialog } from "../../delete-event-dialog";
+import { EventParticipationInsights } from "../../event-participation-insights";
 import { EventForm } from "../../event-form";
 import { eventRowToFormInitial } from "../../event-form-initial";
+import {
+  listRegistrationQuestionsForEvent,
+  rowsToQuestionDrafts,
+} from "@/lib/event-registration-persist";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -32,10 +38,12 @@ export default async function EditEventPage({ params }: Props) {
   if (!row[0]) notFound();
 
   const initial = eventRowToFormInitial(row[0]);
+  const questionRows = await listRegistrationQuestionsForEvent(row[0].id);
+  initial.registrationQuestions = rowsToQuestionDrafts(questionRows);
   const siteOrigin = getSiteUrl();
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className={siteMainClass}>
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -48,6 +56,8 @@ export default async function EditEventPage({ params }: Props) {
       </div>
 
       <EventForm key={row[0].id} mode="edit" initial={initial} siteOrigin={siteOrigin} />
+
+      <EventParticipationInsights eventId={row[0].id} />
 
       <p className="mt-10 text-center text-sm text-zinc-500">
         <Link href="/dashboard/admin/events" className="underline hover:text-zinc-800">

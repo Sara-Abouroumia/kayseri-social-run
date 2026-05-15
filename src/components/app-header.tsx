@@ -1,0 +1,93 @@
+import { headers } from "next/headers";
+import Image from "next/image";
+import Link from "next/link";
+
+import { ClubSocialLinks } from "@/components/club-social-links";
+import {
+  HeaderToolbar,
+  HeaderToolbarDivider,
+  HeaderUtilityCluster,
+} from "@/components/header-toolbar";
+import { KayseriWeatherClock } from "@/components/kayseri-weather-clock";
+import { auth } from "@/lib/auth";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getLocale } from "@/i18n/get-locale";
+import { siteContainerClass } from "@/lib/layout";
+import { cn } from "@/lib/utils";
+
+import { HeaderNavLink } from "./header-nav-link";
+import { LocaleSwitcher } from "./locale-switcher";
+
+const authLinkClass =
+  "inline-flex h-9 items-center rounded-lg px-4 text-sm font-medium transition";
+const authLinkPrimary = `${authLinkClass} bg-zinc-900 text-white shadow-sm hover:bg-zinc-800`;
+
+export async function AppHeader() {
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const loggedIn = Boolean(session?.user);
+
+  return (
+    <header className="sticky top-0 z-50 max-w-full border-b border-zinc-200/80 bg-white/90 backdrop-blur-md">
+      <div className={cn(siteContainerClass, "flex h-14 min-w-0 items-center gap-3 sm:gap-4")}>
+        <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
+          <Link
+            href="/"
+            className="flex shrink-0 opacity-95 transition hover:opacity-100"
+            aria-label={dict.home.titleAlt}
+          >
+            <Image
+              src="/kayserisocialrun_logo.png"
+              alt={dict.home.titleAlt}
+              width={220}
+              height={56}
+              className="h-9 w-auto sm:h-10"
+              priority
+            />
+          </Link>
+          <ClubSocialLinks
+            instagramAria={dict.nav.socialInstagram}
+            whatsappAria={dict.nav.socialWhatsapp}
+          />
+        </div>
+
+        <HeaderToolbar>
+          <HeaderNavLink href="/" className="hidden sm:inline-flex">
+            {dict.nav.about}
+          </HeaderNavLink>
+
+          <HeaderToolbarDivider />
+
+          <div className="@container/topbar flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <KayseriWeatherClock locale={locale} labels={dict.navWeather} />
+            <LocaleSwitcher
+              locale={locale}
+              labels={{
+                english: dict.locale.switchToEnglish,
+                turkish: dict.locale.switchToTurkish,
+              }}
+            />
+          </div>
+
+          <HeaderToolbarDivider />
+
+          {loggedIn ? (
+            <Link href="/dashboard" className={authLinkPrimary}>
+              {dict.nav.dashboard}
+            </Link>
+          ) : (
+            <HeaderUtilityCluster>
+              <HeaderNavLink href="/login">{dict.nav.login}</HeaderNavLink>
+              <Link href="/register" className={authLinkPrimary}>
+                {dict.nav.register}
+              </Link>
+            </HeaderUtilityCluster>
+          )}
+        </HeaderToolbar>
+      </div>
+    </header>
+  );
+}

@@ -3,9 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-
 import { auth } from "@/lib/auth";
+import { ActivityTypeDisplay } from "@/components/activity-type-display";
+import { getMyUpcomingRsvps } from "@/lib/event-participation";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getLocale } from "@/i18n/get-locale";
+import type { Locale } from "@/i18n/config";
 import { getUpcomingEventsForDashboard } from "@/lib/upcoming-events";
+import { siteMainClass } from "@/lib/layout";
 import { getSiteUrl } from "@/lib/site-url";
 
 import { ShareUrlButton } from "./share-url-button";
@@ -14,8 +19,8 @@ export const metadata: Metadata = {
   title: "Dashboard",
 };
 
-function formatWhen(d: Date) {
-  return new Intl.DateTimeFormat(undefined, {
+function formatWhen(d: Date, locale: Locale) {
+  return new Intl.DateTimeFormat(locale === "tr" ? "tr-TR" : "en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(d);
@@ -30,36 +35,76 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+
   const firstName = session.user.name?.split(/\s+/)[0] ?? "there";
+
   const upcoming = await getUpcomingEventsForDashboard({
     userId: session.user.id,
     email: session.user.email,
   });
+  const myRsvps = await getMyUpcomingRsvps(session.user.id);
   const siteOrigin = getSiteUrl();
+  const d = dict.dashboard;
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className={siteMainClass}>
       <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-        Hi, {firstName}
+        {d.hi}, {firstName}
       </h1>
-      <p className="mt-2 text-zinc-600">
-        This is your home base for club runs and meetups. More tools will land
-        here as we build the MVP.
-      </p>
+      <p className="mt-2 text-zinc-600">{d.homeBase}</p>
 
       <div className="mt-10 space-y-6">
+        <section
+          className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm"
+          aria-labelledby="rsvp-heading"
+        >
+          <h2 id="rsvp-heading" className="text-lg font-medium text-zinc-900">
+            {d.yourSignups}
+          </h2>
+          {myRsvps.length === 0 ? (
+            <p className="mt-2 text-sm text-zinc-600">{d.noSignups}</p>
+          ) : (
+            <ul className="mt-4 divide-y divide-zinc-100">
+              {myRsvps.map((r) => (
+                <li
+                  key={r.eventId}
+                  className="flex flex-col gap-2 py-3 first:pt-0 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="font-medium text-zinc-900">{r.title}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      {formatWhen(new Date(r.startsAt), locale)} ·{" "}
+                      {r.status === "waitlisted"
+                        ? d.waitlisted
+                        : r.status === "pending"
+                          ? d.pending
+                          : d.going}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/e/${r.shareSlug}`}
+                    prefetch={false}
+                    className="inline-flex shrink-0 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+                  >
+                    {d.viewActivity}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <section
           className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm"
           aria-labelledby="upcoming-heading"
         >
           <h2 id="upcoming-heading" className="text-lg font-medium text-zinc-900">
-            Upcoming activities
+            {d.upcomingActivities}
           </h2>
           {upcoming.length === 0 ? (
-            <p className="mt-2 text-sm text-zinc-600">
-              No upcoming published activities yet. When admins add events, they
-              appear here with a link to share and preview.
-            </p>
+            <p className="mt-2 text-sm text-zinc-600">{d.noUpcoming}</p>
           ) : (
             <ul className="mt-4 divide-y divide-zinc-100">
               {upcoming.map((e) => {
@@ -86,28 +131,35 @@ export default async function DashboardPage() {
                           className="flex h-16 w-24 shrink-0 items-center justify-center rounded border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400"
                           aria-hidden
                         >
-                          No image
+                          {d.noImage}
                         </div>
                       )}
                       <div className="min-w-0">
                         <p className="truncate font-medium text-zinc-900">{e.title}</p>
                         <p className="mt-0.5 text-xs text-zinc-500">
-                          {formatWhen(new Date(e.startsAt))} · {e.activityType} ·{" "}
-                          {e.visibility.replace("_", " ")}
+                          {formatWhen(new Date(e.startsAt), locale)} ·{" "}
+                          <ActivityTypeDisplay
+                            activityType={e.activityType}
+                            activityTypeEmoji={e.activityTypeEmoji}
+                            className="inline"
+                          />{" "}
+                          · {e.visibility.replace("_", " ")}
                         </p>
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                       <ShareUrlButton
                         url={shareUrl}
-                        label={`Copy share link for ${e.title}`}
+                        label={`${d.copyShareLink} ${e.title}`}
+                        shareLabel={d.share}
+                        copiedLabel={d.copied}
                       />
                       <Link
                         href={`/e/${e.shareSlug}`}
                         prefetch={false}
                         className="inline-flex rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
                       >
-                        View event
+                        {d.viewEvent}
                       </Link>
                     </div>
                   </li>
@@ -115,48 +167,18 @@ export default async function DashboardPage() {
               })}
             </ul>
           )}
-          <p className="mt-4 text-xs text-zinc-500">
-            RSVP and join flows will plug in here next.
-          </p>
         </section>
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          <section
-            className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm"
-            aria-labelledby="club-heading"
-          >
-            <h2 id="club-heading" className="text-lg font-medium text-zinc-900">
-              Your club
-            </h2>
-            <p className="mt-2 text-sm text-zinc-600">
-              A public club profile and member directory will live here (Kayseri
-              Runners first, then reusable for other clubs).
-            </p>
-            <p className="mt-4 text-xs text-zinc-500">
-              Next: club page + roles (member / coordinator / admin).
-            </p>
-          </section>
-
-          <section
-            className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 p-6"
-            aria-labelledby="coord-heading"
-          >
-            <h2 id="coord-heading" className="text-lg font-medium text-zinc-900">
-              Coordinators
-            </h2>
-            <p className="mt-2 text-sm text-zinc-600">
-              Create runs, see who is coming, and share meeting points. That flow is
-              not wired yet.
-            </p>
-            <p className="mt-4 text-xs text-zinc-500">
-              Next: participant list and map pin (see{" "}
-              <code className="rounded bg-zinc-100 px-1 py-0.5 text-zinc-700">
-                docs/APP.md
-              </code>
-              ).
-            </p>
-          </section>
-        </div>
+        <section
+          className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 p-6"
+          aria-labelledby="coord-heading"
+        >
+          <h2 id="coord-heading" className="text-lg font-medium text-zinc-900">
+            {d.coordinators}
+          </h2>
+          <p className="mt-2 text-sm text-zinc-600">{d.coordBlurb}</p>
+          <p className="mt-4 text-xs text-zinc-500">{d.coordFoot}</p>
+        </section>
       </div>
     </main>
   );

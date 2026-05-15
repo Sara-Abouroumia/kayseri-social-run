@@ -1,4 +1,6 @@
+import type { JoinApprovalConfig } from "@/db/schema/events";
 import type { events } from "@/db/schema/events";
+import type { RegistrationQuestionDraft } from "@/lib/event-registration";
 
 export type EventFormInitial = {
   id?: string;
@@ -6,6 +8,7 @@ export type EventFormInitial = {
   title: string;
   description: string;
   activityType: string;
+  activityTypeEmoji: string;
   startsAt: string;
   endsAt: string;
   meetingPointName: string;
@@ -22,12 +25,18 @@ export type EventFormInitial = {
   weatherInfo: string;
   visibility: "public" | "members_only" | "private";
   coverImageUrl: string;
+  costKind: "free" | "paid";
+  costNotes: string;
+  registrationQuestions: RegistrationQuestionDraft[];
+  joinApprovalMode: "auto" | "manual" | "conditional";
+  joinApprovalConfig: JoinApprovalConfig | null;
 };
 
 export const emptyEventFormInitial: EventFormInitial = {
   title: "",
   description: "",
-  activityType: "run",
+  activityType: "Run",
+  activityTypeEmoji: "🏃",
   startsAt: "",
   endsAt: "",
   meetingPointName: "",
@@ -44,6 +53,11 @@ export const emptyEventFormInitial: EventFormInitial = {
   weatherInfo: "",
   visibility: "public",
   coverImageUrl: "",
+  costKind: "free",
+  costNotes: "",
+  registrationQuestions: [],
+  joinApprovalMode: "auto",
+  joinApprovalConfig: null,
 };
 
 export function toDatetimeLocalValue(d: Date): string {
@@ -60,6 +74,7 @@ export function eventRowToFormInitial(
     title: row.title,
     description: row.description ?? "",
     activityType: row.activityType,
+    activityTypeEmoji: row.activityTypeEmoji ?? "",
     startsAt: toDatetimeLocalValue(new Date(row.startsAt)),
     endsAt: row.endsAt ? toDatetimeLocalValue(new Date(row.endsAt)) : "",
     meetingPointName: row.meetingPointName ?? "",
@@ -79,5 +94,10 @@ export function eventRowToFormInitial(
     weatherInfo: row.weatherInfo ?? "",
     visibility: row.visibility,
     coverImageUrl: row.coverImageUrl ?? "",
+    costKind: row.costKind === "paid" ? "paid" : "free",
+    costNotes: row.costNotes ?? "",
+    registrationQuestions: [],
+    joinApprovalMode: row.joinApprovalMode ?? "auto",
+    joinApprovalConfig: row.joinApprovalConfig ?? null,
   };
 }

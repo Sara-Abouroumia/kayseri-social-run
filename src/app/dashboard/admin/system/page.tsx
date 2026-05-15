@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { siteMainClass } from "@/lib/layout";
 import {
   isPlatformAdmin,
   listPlatformAdmins,
@@ -34,7 +35,7 @@ export default async function AdminSystemPage() {
   const bootstrap = parseBootstrapAdminEmails();
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className={siteMainClass}>
       <div className="mb-8">
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
           Admin

@@ -9,9 +9,15 @@ import { db } from "@/db";
 import { events } from "@/db/schema/events";
 import { getOrCreateDefaultClubId } from "@/lib/default-club";
 import { allocateUniqueShareSlug } from "@/lib/event-share-slug";
+import {
+  parseJoinApprovalConfigJson,
+  parseRegistrationQuestionsJson,
+} from "@/lib/event-registration";
+import { replaceRegistrationQuestionsForEvent } from "@/lib/event-registration-persist";
 import { requirePlatformAdminSession } from "@/lib/require-platform-admin-session";
 
 const visibilitySchema = z.enum(["public", "members_only", "private"]);
+const costKindSchema = z.enum(["free", "paid"]);
 
 function emptyToUndefined(s: unknown): string | undefined {
   if (s == null) return undefined;
@@ -59,8 +65,14 @@ const eventFieldsSchema = z.object({
     .transform((v) => (v === "" ? undefined : v)),
   activityType: z.preprocess((v) => {
     const t = emptyToUndefined(v);
-    return t && t.length > 0 ? t : "run";
+    return t && t.length > 0 ? t : "Run";
   }, z.string().trim().min(1).max(80)),
+  activityTypeEmoji: z
+    .string()
+    .trim()
+    .max(16)
+    .optional()
+    .transform((v) => (v === "" || v == null ? undefined : v)),
   startsAt: z.unknown().transform(parseRequiredIsoDate),
   endsAt: z.unknown().transform(parseOptionalIsoDate),
   meetingPointName: z
@@ -110,6 +122,16 @@ const eventFieldsSchema = z.object({
     .max(2000)
     .optional()
     .transform((v) => (v === "" ? undefined : v)),
+  costKind: z.preprocess((v) => {
+    const s = String(v ?? "").trim();
+    return s === "paid" ? "paid" : "free";
+  }, costKindSchema),
+  costNotes: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
   visibility: visibilitySchema,
   coverImageUrl: z.preprocess(
     (v) => {
@@ -136,6 +158,39 @@ const eventFieldsSchema = z.object({
   ),
 });
 
+function parseRegistrationFromForm(fd: FormData) {
+  const questions = parseRegistrationQuestionsJson(fd.get("registrationQuestionsJson"));
+  const invalidLabel = questions.find((q) => !q.label.trim());
+  if (invalidLabel) {
+    return { error: "Each registration question needs a label." as const };
+  }
+
+  const modeRaw = String(fd.get("joinApprovalMode") ?? "auto").trim();
+  const joinApprovalMode: "auto" | "manual" | "conditional" =
+    modeRaw === "manual" || modeRaw === "conditional" ? modeRaw : "auto";
+
+  let joinApprovalConfig = parseJoinApprovalConfigJson(fd.get("joinApprovalConfigJson"));
+  if (joinApprovalMode !== "conditional") {
+    joinApprovalConfig = null;
+  } else if (!joinApprovalConfig) {
+    joinApprovalConfig = { rules: [], defaultOutcome: "accepted" };
+  }
+
+  if (joinApprovalMode === "conditional" && questions.length === 0) {
+    return {
+      error: "Add at least one registration question for conditional approval.",
+    } as const;
+  }
+
+  for (const q of questions) {
+    if (q.dependsOnQuestionId && !questions.some((p) => p.id === q.dependsOnQuestionId)) {
+      return { error: "A follow-up question references a removed parent question." } as const;
+    }
+  }
+
+  return { questions, joinApprovalMode, joinApprovalConfig };
+}
+
 function formDataToEventFields(fd: FormData) {
   const str = (k: string) => {
     const v = fd.get(k);
@@ -146,7 +201,8 @@ function formDataToEventFields(fd: FormData) {
   return {
     title: str("title"),
     description: str("description"),
-    activityType: str("activityType") || "run",
+    activityType: str("activityType") || "Run",
+    activityTypeEmoji: str("activityTypeEmoji"),
     startsAt: str("startsAt"),
     endsAt: str("endsAt"),
     meetingPointName: str("meetingPointName"),
@@ -161,6 +217,8 @@ function formDataToEventFields(fd: FormData) {
     maxParticipants: str("maxParticipants"),
     joinDeadlineAt: str("joinDeadlineAt"),
     weatherInfo: str("weatherInfo"),
+    costKind: str("costKind"),
+    costNotes: str("costNotes"),
     visibility: str("visibility") || "public",
     coverImageUrl: str("coverImageUrl"),
   };
@@ -198,6 +256,11 @@ export async function createEventAction(
   const shareSlug = await allocateUniqueShareSlug(f.title);
   const clubId = await getOrCreateDefaultClubId();
 
+  const reg = parseRegistrationFromForm(formData);
+  if ("error" in reg) {
+    return { message: reg.error, ok: false };
+  }
+
   await db.insert(events).values({
     id,
     shareSlug,
@@ -205,6 +268,7 @@ export async function createEventAction(
     title: f.title,
     description: f.description ?? null,
     activityType: f.activityType,
+    activityTypeEmoji: f.activityTypeEmoji ?? null,
     startsAt: f.startsAt,
     endsAt: f.endsAt ?? null,
     meetingPointName: f.meetingPointName ?? null,
@@ -219,12 +283,23 @@ export async function createEventAction(
     maxParticipants: f.maxParticipants ?? null,
     joinDeadlineAt: f.joinDeadlineAt ?? null,
     weatherInfo: f.weatherInfo ?? null,
+    costKind: f.costKind,
+    costNotes: f.costKind === "paid" ? (f.costNotes ?? null) : null,
     visibility: f.visibility,
+    joinApprovalMode: reg.joinApprovalMode,
+    joinApprovalConfig: reg.joinApprovalConfig,
     coverImageUrl: f.coverImageUrl ?? null,
     createdByUserId: gate.session.user.id,
     createdAt: now,
     updatedAt: now,
   });
+
+  await replaceRegistrationQuestionsForEvent(
+    id,
+    reg.questions,
+    reg.joinApprovalMode,
+    reg.joinApprovalConfig,
+  );
 
   revalidatePath("/dashboard/admin/events");
   revalidatePath(`/e/${shareSlug}`);
@@ -272,6 +347,11 @@ export async function updateEventAction(
     return { message: "Start date and time are required.", ok: false };
   }
 
+  const reg = parseRegistrationFromForm(formData);
+  if ("error" in reg) {
+    return { message: reg.error, ok: false };
+  }
+
   const now = new Date();
   await db
     .update(events)
@@ -279,6 +359,7 @@ export async function updateEventAction(
       title: f.title,
       description: f.description ?? null,
       activityType: f.activityType,
+      activityTypeEmoji: f.activityTypeEmoji ?? null,
       startsAt: f.startsAt,
       endsAt: f.endsAt ?? null,
       meetingPointName: f.meetingPointName ?? null,
@@ -293,16 +374,93 @@ export async function updateEventAction(
       maxParticipants: f.maxParticipants ?? null,
       joinDeadlineAt: f.joinDeadlineAt ?? null,
       weatherInfo: f.weatherInfo ?? null,
+      costKind: f.costKind,
+      costNotes: f.costKind === "paid" ? (f.costNotes ?? null) : null,
       visibility: f.visibility,
+      joinApprovalMode: reg.joinApprovalMode,
+      joinApprovalConfig: reg.joinApprovalConfig,
       coverImageUrl: f.coverImageUrl ?? null,
       updatedAt: now,
     })
     .where(eq(events.id, eventId.data));
 
+  await replaceRegistrationQuestionsForEvent(
+    eventId.data,
+    reg.questions,
+    reg.joinApprovalMode,
+    reg.joinApprovalConfig,
+  );
+
   revalidatePath("/dashboard/admin/events");
   revalidatePath(`/dashboard/admin/events/${eventId.data}/edit`);
   revalidatePath(`/e/${existing[0].shareSlug}`);
   return { ok: true, message: "Event updated." };
+}
+
+const coverImageUrlOnlySchema = z
+  .string()
+  .trim()
+  .refine(
+    (v) =>
+      /^https?:\/\//i.test(v) ||
+      /^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(v),
+    {
+      message:
+        "Cover must be an https URL, an uploaded image, or a small embedded image from upload.",
+    },
+  )
+  .refine((v) => v.length <= 2_500_000, {
+    message: "Cover image data is too large. Use a smaller file or Vercel Blob.",
+  });
+
+export async function updateEventCoverImageAction(
+  eventId: string,
+  coverImageUrl: string,
+): Promise<{ ok: boolean; message?: string }> {
+  const gate = await requirePlatformAdminSession();
+  if (!gate.ok) {
+    return {
+      ok: false,
+      message:
+        gate.message === "Unauthorized"
+          ? "You must be signed in."
+          : "You do not have permission to manage events.",
+    };
+  }
+
+  const idParsed = z.string().uuid().safeParse(eventId);
+  if (!idParsed.success) {
+    return { ok: false, message: "Invalid event." };
+  }
+
+  const urlParsed = coverImageUrlOnlySchema.safeParse(coverImageUrl);
+  if (!urlParsed.success) {
+    return {
+      ok: false,
+      message: urlParsed.error.issues[0]?.message ?? "Invalid cover image.",
+    };
+  }
+
+  const existing = await db
+    .select({ shareSlug: events.shareSlug })
+    .from(events)
+    .where(eq(events.id, idParsed.data))
+    .limit(1);
+  if (!existing[0]) {
+    return { ok: false, message: "Event not found." };
+  }
+
+  await db
+    .update(events)
+    .set({ coverImageUrl: urlParsed.data, updatedAt: new Date() })
+    .where(eq(events.id, idParsed.data));
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/admin/events");
+  revalidatePath(`/dashboard/admin/events/${idParsed.data}/edit`);
+  revalidatePath(`/e/${existing[0].shareSlug}`);
+
+  return { ok: true };
 }
 
 export async function deleteEventAction(

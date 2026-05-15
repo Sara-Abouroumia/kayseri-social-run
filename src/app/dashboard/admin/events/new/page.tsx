@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { siteMainClass } from "@/lib/layout";
 import { getSiteUrl } from "@/lib/site-url";
 
 import { EventForm } from "../event-form";
@@ -13,7 +14,7 @@ export default function NewEventPage() {
   const siteOrigin = getSiteUrl();
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className={siteMainClass}>
       <div className="mb-8">
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
           Admin

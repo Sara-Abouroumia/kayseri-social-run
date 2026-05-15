@@ -1,10 +1,12 @@
 import {
   decimal,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { clubs } from "./clubs";
@@ -18,9 +20,38 @@ export const eventVisibility = pgEnum("event_visibility", [
 
 export const participationStatus = pgEnum("participation_status", [
   "going",
+  "pending",
+  "rejected",
   "cancelled",
   "waitlisted",
 ]);
+
+export const eventCostKind = pgEnum("event_cost_kind", ["free", "paid"]);
+
+export const joinApprovalMode = pgEnum("join_approval_mode", [
+  "auto",
+  "manual",
+  "conditional",
+]);
+
+/** First matching rule wins; otherwise `defaultOutcome` applies. */
+export type JoinApprovalRule = {
+  questionId: string;
+  when:
+    | "checked"
+    | "unchecked"
+    | "yes"
+    | "no"
+    | "equals"
+    | "not_equals";
+  value?: string;
+  outcome: "pending" | "accepted";
+};
+
+export type JoinApprovalConfig = {
+  rules: JoinApprovalRule[];
+  defaultOutcome: "pending" | "accepted";
+};
 
 export const events = pgTable("events", {
   id: text("id").primaryKey(),
@@ -32,7 +63,9 @@ export const events = pgTable("events", {
 
   title: text("title").notNull(),
   description: text("description"),
-  activityType: text("activity_type").notNull().default("run"),
+  activityType: text("activity_type").notNull().default("Run"),
+  /** Optional icon shown with the type name (any short Unicode string). */
+  activityTypeEmoji: text("activity_type_emoji"),
 
   startsAt: timestamp("starts_at").notNull(),
   endsAt: timestamp("ends_at"),
@@ -54,7 +87,16 @@ export const events = pgTable("events", {
   joinDeadlineAt: timestamp("join_deadline_at"),
   weatherInfo: text("weather_info"),
 
+  costKind: eventCostKind("cost_kind").notNull().default("free"),
+  /** When `costKind` is paid: amount, currency, how to pay, etc. */
+  costNotes: text("cost_notes"),
+
   visibility: eventVisibility("visibility").notNull().default("public"),
+
+  /** How join requests are approved after registration answers are submitted. */
+  joinApprovalMode: joinApprovalMode("join_approval_mode").notNull().default("auto"),
+  /** When mode is `conditional`, rules stored as JSON (see JoinApprovalConfig). */
+  joinApprovalConfig: jsonb("join_approval_config").$type<JoinApprovalConfig>(),
 
   coverImageUrl: text("cover_image_url"),
 
@@ -66,20 +108,29 @@ export const events = pgTable("events", {
   updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const eventParticipants = pgTable("event_participants", {
-  id: text("id").primaryKey(),
+export const eventParticipants = pgTable(
+  "event_participants",
+  {
+    id: text("id").primaryKey(),
 
-  eventId: text("event_id")
-    .notNull()
-    .references(() => events.id, { onDelete: "cascade" }),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
 
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
 
-  status: participationStatus("status").notNull().default("going"),
+    status: participationStatus("status").notNull().default("going"),
 
-  note: text("note"),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
-});
+    note: text("note"),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("event_participants_event_id_user_id_uidx").on(
+      t.eventId,
+      t.userId,
+    ),
+  ],
+);
