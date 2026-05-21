@@ -13,6 +13,8 @@ import { getUpcomingEventsForDashboard } from "@/lib/upcoming-events";
 import { siteMainClass } from "@/lib/layout";
 import { getSiteUrl } from "@/lib/site-url";
 
+import { listMyCommunityIdeas } from "./idea-box-actions";
+import { IdeaBoxSection } from "./idea-box-section";
 import { ShareUrlButton } from "./share-url-button";
 
 export const metadata: Metadata = {
@@ -45,6 +47,7 @@ export default async function DashboardPage() {
     email: session.user.email,
   });
   const myRsvps = await getMyUpcomingRsvps(session.user.id);
+  const myIdeas = await listMyCommunityIdeas(session.user.id);
   const siteOrigin = getSiteUrl();
   const d = dict.dashboard;
 
@@ -169,16 +172,7 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        <section
-          className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 p-6"
-          aria-labelledby="coord-heading"
-        >
-          <h2 id="coord-heading" className="text-lg font-medium text-zinc-900">
-            {d.coordinators}
-          </h2>
-          <p className="mt-2 text-sm text-zinc-600">{d.coordBlurb}</p>
-          <p className="mt-4 text-xs text-zinc-500">{d.coordFoot}</p>
-        </section>
+        <IdeaBoxSection copy={dict.ideaBox} ideas={myIdeas} locale={locale} />
       </div>
     </main>
   );

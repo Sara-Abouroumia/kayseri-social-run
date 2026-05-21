@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -14,10 +13,24 @@ import {
   parseRegistrationQuestionsJson,
 } from "@/lib/event-registration";
 import { replaceRegistrationQuestionsForEvent } from "@/lib/event-registration-persist";
+import { canEditEvent } from "@/lib/event-schedule-phase";
+import { revalidateEventSurfaces } from "@/lib/revalidate-event-surfaces";
+import { getAdminEventFormCopy } from "@/lib/admin-event-form-messages";
 import { requirePlatformAdminSession } from "@/lib/require-platform-admin-session";
+
+async function adminEventActions() {
+  return (await getAdminEventFormCopy()).actions;
+}
 
 const visibilitySchema = z.enum(["public", "members_only", "private"]);
 const costKindSchema = z.enum(["free", "paid"]);
+
+/** Registration closes 24h before start when no deadline is set in the form. */
+function defaultJoinDeadlineAt(startsAt: Date): Date {
+  const deadline = new Date(startsAt);
+  deadline.setDate(deadline.getDate() - 1);
+  return deadline;
+}
 
 function emptyToUndefined(s: unknown): string | undefined {
   if (s == null) return undefined;
@@ -55,8 +68,11 @@ function parseOptionalInt(s: unknown): number | undefined {
   return n;
 }
 
-const eventFieldsSchema = z.object({
-  title: z.string().trim().min(1, "Title is required.").max(200),
+type ActionCopy = Awaited<ReturnType<typeof adminEventActions>>;
+
+function eventFieldsSchema(t: ActionCopy) {
+  return z.object({
+  title: z.string().trim().min(1, t.titleRequired).max(200),
   description: z
     .string()
     .trim()
@@ -148,21 +164,21 @@ const eventFieldsSchema = z.object({
           /^https?:\/\//i.test(v) ||
           /^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(v),
         {
-          message:
-            "Cover must be an https URL, an uploaded image, or a small embedded image from upload.",
+          message: t.invalidCoverUrl,
         },
       )
       .refine((v) => v == null || v.length <= 2_500_000, {
-        message: "Cover image data is too large. Use a smaller file or Vercel Blob.",
+        message: t.coverTooLarge,
       }),
   ),
 });
+}
 
-function parseRegistrationFromForm(fd: FormData) {
+function parseRegistrationFromForm(fd: FormData, t: ActionCopy) {
   const questions = parseRegistrationQuestionsJson(fd.get("registrationQuestionsJson"));
   const invalidLabel = questions.find((q) => !q.label.trim());
   if (invalidLabel) {
-    return { error: "Each registration question needs a label." as const };
+    return { error: t.questionLabelRequired };
   }
 
   const modeRaw = String(fd.get("joinApprovalMode") ?? "auto").trim();
@@ -177,14 +193,23 @@ function parseRegistrationFromForm(fd: FormData) {
   }
 
   if (joinApprovalMode === "conditional" && questions.length === 0) {
-    return {
-      error: "Add at least one registration question for conditional approval.",
-    } as const;
+    return { error: t.conditionalApprovalNeedsQuestion };
   }
 
   for (const q of questions) {
-    if (q.dependsOnQuestionId && !questions.some((p) => p.id === q.dependsOnQuestionId)) {
-      return { error: "A follow-up question references a removed parent question." } as const;
+    if (!q.dependsOnQuestionId) continue;
+    const parent = questions.find((p) => p.id === q.dependsOnQuestionId);
+    if (!parent) {
+      return { error: t.followUpParentRemoved };
+    }
+    if (
+      parent.questionType !== "checkbox" &&
+      parent.questionType !== "yes_no"
+    ) {
+      return { error: t.followUpParentInvalid };
+    }
+    if (parent.sortOrder >= q.sortOrder) {
+      return { error: t.followUpMustFollowParent };
     }
   }
 
@@ -228,27 +253,26 @@ export async function createEventAction(
   _prev: { message?: string; ok?: boolean } | undefined,
   formData: FormData,
 ): Promise<{ message?: string; ok?: boolean }> {
+  const t = await adminEventActions();
   const gate = await requirePlatformAdminSession();
   if (!gate.ok) {
     return {
       message:
-        gate.message === "Unauthorized"
-          ? "You must be signed in."
-          : "You do not have permission to manage events.",
+        gate.message === "Unauthorized" ? t.mustSignIn : t.noPermission,
       ok: false,
     };
   }
 
-  const parsedFields = eventFieldsSchema.safeParse(formDataToEventFields(formData));
+  const parsedFields = eventFieldsSchema(t).safeParse(formDataToEventFields(formData));
   if (!parsedFields.success) {
     return {
-      message: parsedFields.error.issues[0]?.message ?? "Invalid input.",
+      message: parsedFields.error.issues[0]?.message ?? t.invalidInput,
       ok: false,
     };
   }
   const f = parsedFields.data;
   if (f.startsAt == null) {
-    return { message: "Start date and time are required.", ok: false };
+    return { message: t.startRequired, ok: false };
   }
 
   const id = crypto.randomUUID();
@@ -256,7 +280,7 @@ export async function createEventAction(
   const shareSlug = await allocateUniqueShareSlug(f.title);
   const clubId = await getOrCreateDefaultClubId();
 
-  const reg = parseRegistrationFromForm(formData);
+  const reg = parseRegistrationFromForm(formData, t);
   if ("error" in reg) {
     return { message: reg.error, ok: false };
   }
@@ -281,7 +305,7 @@ export async function createEventAction(
     requiredItems: f.requiredItems ?? null,
     coordinatorName: f.coordinatorName ?? null,
     maxParticipants: f.maxParticipants ?? null,
-    joinDeadlineAt: f.joinDeadlineAt ?? null,
+    joinDeadlineAt: f.joinDeadlineAt ?? defaultJoinDeadlineAt(f.startsAt),
     weatherInfo: f.weatherInfo ?? null,
     costKind: f.costKind,
     costNotes: f.costKind === "paid" ? (f.costNotes ?? null) : null,
@@ -301,53 +325,58 @@ export async function createEventAction(
     reg.joinApprovalConfig,
   );
 
-  revalidatePath("/dashboard/admin/events");
-  revalidatePath(`/e/${shareSlug}`);
-  redirect(`/dashboard/admin/events/${id}/edit`);
+  revalidateEventSurfaces(shareSlug);
+  redirect(`/dashboard/admin/events/${id}/edit?created=1`);
 }
 
 export async function updateEventAction(
   _prev: { message?: string; ok?: boolean } | undefined,
   formData: FormData,
 ): Promise<{ message?: string; ok?: boolean }> {
+  const t = await adminEventActions();
   const gate = await requirePlatformAdminSession();
   if (!gate.ok) {
     return {
       message:
-        gate.message === "Unauthorized"
-          ? "You must be signed in."
-          : "You do not have permission to manage events.",
+        gate.message === "Unauthorized" ? t.mustSignIn : t.noPermission,
       ok: false,
     };
   }
 
   const eventId = z.string().uuid().safeParse(formData.get("eventId"));
   if (!eventId.success) {
-    return { message: "Invalid event.", ok: false };
+    return { message: t.invalidEvent, ok: false };
   }
 
   const existing = await db
-    .select({ shareSlug: events.shareSlug })
+    .select({
+      shareSlug: events.shareSlug,
+      startsAt: events.startsAt,
+      endsAt: events.endsAt,
+    })
     .from(events)
     .where(eq(events.id, eventId.data))
     .limit(1);
   if (!existing[0]) {
-    return { message: "Event not found.", ok: false };
+    return { message: t.eventNotFound, ok: false };
+  }
+  if (!canEditEvent(existing[0])) {
+    return { message: t.eventNotEditable, ok: false };
   }
 
-  const parsedFields = eventFieldsSchema.safeParse(formDataToEventFields(formData));
+  const parsedFields = eventFieldsSchema(t).safeParse(formDataToEventFields(formData));
   if (!parsedFields.success) {
     return {
-      message: parsedFields.error.issues[0]?.message ?? "Invalid input.",
+      message: parsedFields.error.issues[0]?.message ?? t.invalidInput,
       ok: false,
     };
   }
   const f = parsedFields.data;
   if (f.startsAt == null) {
-    return { message: "Start date and time are required.", ok: false };
+    return { message: t.startRequired, ok: false };
   }
 
-  const reg = parseRegistrationFromForm(formData);
+  const reg = parseRegistrationFromForm(formData, t);
   if ("error" in reg) {
     return { message: reg.error, ok: false };
   }
@@ -391,63 +420,68 @@ export async function updateEventAction(
     reg.joinApprovalConfig,
   );
 
-  revalidatePath("/dashboard/admin/events");
-  revalidatePath(`/dashboard/admin/events/${eventId.data}/edit`);
-  revalidatePath(`/e/${existing[0].shareSlug}`);
-  return { ok: true, message: "Event updated." };
+  revalidateEventSurfaces(existing[0].shareSlug);
+  return { ok: true, message: t.eventUpdated };
 }
 
-const coverImageUrlOnlySchema = z
-  .string()
-  .trim()
-  .refine(
-    (v) =>
-      /^https?:\/\//i.test(v) ||
-      /^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(v),
-    {
-      message:
-        "Cover must be an https URL, an uploaded image, or a small embedded image from upload.",
-    },
-  )
-  .refine((v) => v.length <= 2_500_000, {
-    message: "Cover image data is too large. Use a smaller file or Vercel Blob.",
-  });
+function coverImageUrlOnlySchema(t: ActionCopy) {
+  return z
+    .string()
+    .trim()
+    .refine(
+      (v) =>
+        /^https?:\/\//i.test(v) ||
+        /^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(v),
+      {
+        message: t.invalidCoverUrl,
+      },
+    )
+    .refine((v) => v.length <= 2_500_000, {
+      message: t.coverTooLarge,
+    });
+}
 
 export async function updateEventCoverImageAction(
   eventId: string,
   coverImageUrl: string,
 ): Promise<{ ok: boolean; message?: string }> {
+  const t = await adminEventActions();
   const gate = await requirePlatformAdminSession();
   if (!gate.ok) {
     return {
       ok: false,
       message:
-        gate.message === "Unauthorized"
-          ? "You must be signed in."
-          : "You do not have permission to manage events.",
+        gate.message === "Unauthorized" ? t.mustSignIn : t.noPermission,
     };
   }
 
   const idParsed = z.string().uuid().safeParse(eventId);
   if (!idParsed.success) {
-    return { ok: false, message: "Invalid event." };
+    return { ok: false, message: t.invalidEvent };
   }
 
-  const urlParsed = coverImageUrlOnlySchema.safeParse(coverImageUrl);
+  const urlParsed = coverImageUrlOnlySchema(t).safeParse(coverImageUrl);
   if (!urlParsed.success) {
     return {
       ok: false,
-      message: urlParsed.error.issues[0]?.message ?? "Invalid cover image.",
+      message: urlParsed.error.issues[0]?.message ?? t.invalidCover,
     };
   }
 
   const existing = await db
-    .select({ shareSlug: events.shareSlug })
+    .select({
+      shareSlug: events.shareSlug,
+      startsAt: events.startsAt,
+      endsAt: events.endsAt,
+    })
     .from(events)
     .where(eq(events.id, idParsed.data))
     .limit(1);
   if (!existing[0]) {
-    return { ok: false, message: "Event not found." };
+    return { ok: false, message: t.eventNotFound };
+  }
+  if (!canEditEvent(existing[0])) {
+    return { ok: false, message: t.eventNotEditable };
   }
 
   await db
@@ -455,10 +489,7 @@ export async function updateEventCoverImageAction(
     .set({ coverImageUrl: urlParsed.data, updatedAt: new Date() })
     .where(eq(events.id, idParsed.data));
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/admin/events");
-  revalidatePath(`/dashboard/admin/events/${idParsed.data}/edit`);
-  revalidatePath(`/e/${existing[0].shareSlug}`);
+  revalidateEventSurfaces(existing[0].shareSlug);
 
   return { ok: true };
 }
@@ -467,25 +498,24 @@ export async function deleteEventAction(
   _prev: { message?: string; ok?: boolean } | undefined,
   formData: FormData,
 ): Promise<{ message?: string; ok?: boolean }> {
+  const t = await adminEventActions();
   const gate = await requirePlatformAdminSession();
   if (!gate.ok) {
     return {
       message:
-        gate.message === "Unauthorized"
-          ? "You must be signed in."
-          : "You do not have permission to manage events.",
+        gate.message === "Unauthorized" ? t.mustSignIn : t.noPermission,
       ok: false,
     };
   }
 
   const eventId = z.string().uuid().safeParse(formData.get("eventId"));
   if (!eventId.success) {
-    return { message: "Invalid event.", ok: false };
+    return { message: t.invalidEvent, ok: false };
   }
 
   const confirmTitle = z.string().safeParse(formData.get("confirmTitle"));
   if (!confirmTitle.success) {
-    return { message: "Type the event title exactly to confirm deletion.", ok: false };
+    return { message: t.confirmDeleteHint, ok: false };
   }
 
   const row = await db
@@ -494,19 +524,18 @@ export async function deleteEventAction(
     .where(eq(events.id, eventId.data))
     .limit(1);
   if (!row[0]) {
-    return { message: "Event not found.", ok: false };
+    return { message: t.eventNotFound, ok: false };
   }
 
   if (confirmTitle.data !== row[0].title) {
     return {
-      message: "Confirmation text must match the event title exactly.",
+      message: t.confirmTitleMismatch,
       ok: false,
     };
   }
 
   await db.delete(events).where(eq(events.id, eventId.data));
 
-  revalidatePath("/dashboard/admin/events");
-  revalidatePath(`/e/${row[0].shareSlug}`);
+  revalidateEventSurfaces(row[0].shareSlug);
   redirect("/dashboard/admin/events");
 }

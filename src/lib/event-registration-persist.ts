@@ -7,7 +7,10 @@ import {
 } from "@/db/schema/event-registration";
 import type { JoinApprovalConfig } from "@/db/schema/events";
 import { events } from "@/db/schema/events";
-import type { RegistrationQuestionDraft } from "@/lib/event-registration";
+import {
+  normalizeRegistrationQuestions,
+  type RegistrationQuestionDraft,
+} from "@/lib/event-registration";
 
 export async function listRegistrationQuestionsForEvent(eventId: string) {
   return db
@@ -20,15 +23,17 @@ export async function listRegistrationQuestionsForEvent(eventId: string) {
 export function rowsToQuestionDrafts(
   rows: Awaited<ReturnType<typeof listRegistrationQuestionsForEvent>>,
 ): RegistrationQuestionDraft[] {
-  return rows.map((r) => ({
-    id: r.id,
-    label: r.label,
-    questionType: r.questionType,
-    required: r.required,
-    sortOrder: r.sortOrder,
-    dependsOnQuestionId: r.dependsOnQuestionId,
-    dependsOnValue: r.dependsOnValue,
-  }));
+  return normalizeRegistrationQuestions(
+    rows.map((r) => ({
+      id: r.id,
+      label: r.label,
+      questionType: r.questionType,
+      required: r.required,
+      sortOrder: r.sortOrder,
+      dependsOnQuestionId: r.dependsOnQuestionId,
+      dependsOnValue: r.dependsOnValue,
+    })),
+  );
 }
 
 export async function replaceRegistrationQuestionsForEvent(

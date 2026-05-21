@@ -15,8 +15,10 @@ import {
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import type { Locale } from "@/i18n/config";
-import { siteHorizontalPadding } from "@/lib/layout";
+import { siteMainClass } from "@/lib/layout";
+import { canEditEvent } from "@/lib/event-schedule-phase";
 import { isPlatformAdmin } from "@/lib/platform-admin";
+import { isPlatformDeveloper } from "@/lib/platform-developer";
 import { resolveShareImageUrl } from "@/lib/share-image-url";
 import { getSiteUrl } from "@/lib/site-url";
 import { cn } from "@/lib/utils";
@@ -25,20 +27,17 @@ import {
   rowsToQuestionDrafts,
 } from "@/lib/event-registration-persist";
 
+import { EventParticipationInsights } from "@/app/dashboard/admin/events/event-participation-insights";
+
+import { BackToEventsLink } from "@/components/back-to-events-link";
+
 import { EventFullCard } from "./event-full-card";
 
 type Props = {
   params: Promise<{ shareSlug: string }>;
 };
 
-const eventMainClass = cn(
-  "mx-auto w-full min-w-0 max-w-2xl py-10",
-  siteHorizontalPadding,
-);
-const eventMainNarrowClass = cn(
-  "mx-auto w-full min-w-0 max-w-lg py-20 text-center",
-  siteHorizontalPadding,
-);
+const eventMainNarrowClass = cn(siteMainClass, "py-20 text-center");
 
 function formatWhen(d: Date, locale: Locale) {
   return new Intl.DateTimeFormat(locale === "tr" ? "tr-TR" : "en-GB", {
@@ -114,6 +113,7 @@ export default async function PublicEventPage({ params }: Props) {
   if (!row[0]) {
     return (
       <main className={eventMainNarrowClass}>
+        <BackToEventsLink href="/" label={t.backToEvents} />
         <h1 className="text-xl font-semibold text-zinc-900">{t.notFoundTitle}</h1>
         <p className="mt-2 text-sm text-zinc-600">{t.notFoundBody}</p>
         <p className="mt-8">
@@ -150,10 +150,12 @@ export default async function PublicEventPage({ params }: Props) {
     sessionUser != null ? await getUserParticipationStatus(e.id, sessionUser.id) : null;
 
   const signedIn = Boolean(sessionUser);
+  const eventsBackHref = signedIn ? "/dashboard" : "/";
 
   if (e.visibility === "private" && !signedIn) {
     return (
-      <main className={cn(eventMainClass, "py-16")}>
+      <main className={cn(siteMainClass, "py-16")}>
+        <BackToEventsLink href={eventsBackHref} label={t.backToEvents} />
         <h1 className="text-2xl font-semibold text-zinc-900">{e.title}</h1>
         <p className="mt-4 text-sm text-zinc-600">{t.privateStub}</p>
         <div className="mt-8 flex flex-wrap gap-3">
@@ -183,7 +185,8 @@ export default async function PublicEventPage({ params }: Props) {
 
   if (e.visibility === "members_only" && !signedIn) {
     return (
-      <main className={eventMainClass}>
+      <main className={siteMainClass}>
+        <BackToEventsLink href={eventsBackHref} label={t.backToEvents} />
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{t.brand}</p>
         <h1 className="mt-2 text-3xl font-semibold text-zinc-900">{e.title}</h1>
         <p className="mt-2 text-sm text-amber-900">{t.membersTeaser}</p>
@@ -240,11 +243,16 @@ export default async function PublicEventPage({ params }: Props) {
   const questionRows = await listRegistrationQuestionsForEvent(e.id);
   const registrationQuestions = rowsToQuestionDrafts(questionRows);
 
-  const canEditCover = Boolean(
-    session?.user?.id &&
-      session.user.email &&
-      (await isPlatformAdmin(session.user.id, session.user.email)),
-  );
+  let isAdmin = false;
+  let isDeveloper = false;
+  let canEditCover = false;
+  if (session?.user?.id && session.user.email) {
+    isAdmin = await isPlatformAdmin(session.user.id, session.user.email);
+    isDeveloper = await isPlatformDeveloper(session.user.id, session.user.email);
+    canEditCover = isAdmin && canEditEvent(e);
+  }
+
+  const showAdminStats = isAdmin || isDeveloper;
 
   return (
     <EventFullCard
@@ -260,6 +268,19 @@ export default async function PublicEventPage({ params }: Props) {
       locale={locale}
       t={t}
       canEditCover={canEditCover}
+      showAdminSignupCount={showAdminStats}
+      showAdminStats={showAdminStats}
+      statsPanel={
+        showAdminStats ? (
+          <EventParticipationInsights
+            eventId={e.id}
+            variant="plain"
+            copy={dict.eventStats}
+            locale={locale}
+          />
+        ) : undefined
+      }
+      eventsBackHref={eventsBackHref}
     />
   );
 }

@@ -51,10 +51,81 @@ export function parseRegistrationQuestionsJson(raw: unknown): RegistrationQuesti
       const r = registrationQuestionDraftSchema.safeParse(item);
       if (r.success) out.push(r.data);
     }
-    return out.sort((a, b) => a.sortOrder - b.sortOrder);
+    return normalizeRegistrationQuestions(
+      out.sort((a, b) => a.sortOrder - b.sortOrder),
+    );
   } catch {
     return [];
   }
+}
+
+/** Align stored dependsOnValue with parent type (fixes legacy yes/no stored as true/false). */
+export function resolveDependsOnExpected(
+  parent: Pick<RegistrationQuestionDraft, "questionType">,
+  dependsOnValue: string | null,
+): string {
+  const raw = (dependsOnValue ?? "true").trim().toLowerCase();
+  if (parent.questionType === "yes_no") {
+    if (raw === "true" || raw === "yes") return "yes";
+    if (raw === "false" || raw === "no") return "no";
+    return raw;
+  }
+  if (parent.questionType === "checkbox") {
+    if (raw === "yes" || raw === "true" || raw === "on" || raw === "1") return "true";
+    if (raw === "no" || raw === "false" || raw === "unchecked") return "false";
+    return "true";
+  }
+  return (dependsOnValue ?? "true").trim();
+}
+
+export function defaultDependsOnValue(
+  parent: Pick<RegistrationQuestionDraft, "questionType">,
+): string {
+  return parent.questionType === "yes_no" ? "yes" : "true";
+}
+
+export function normalizeRegistrationQuestions(
+  questions: RegistrationQuestionDraft[],
+): RegistrationQuestionDraft[] {
+  const byId = new Map(questions.map((q) => [q.id, q]));
+  return questions.map((q) => {
+    if (!q.dependsOnQuestionId) return q;
+    const parent = byId.get(q.dependsOnQuestionId);
+    if (!parent) {
+      return { ...q, dependsOnQuestionId: null, dependsOnValue: null };
+    }
+    return {
+      ...q,
+      dependsOnValue: resolveDependsOnExpected(parent, q.dependsOnValue),
+    };
+  });
+}
+
+/** Parents always render before their follow-up questions. */
+export function sortQuestionsForDisplay(
+  questions: RegistrationQuestionDraft[],
+): RegistrationQuestionDraft[] {
+  const sorted = [...questions].sort((a, b) => a.sortOrder - b.sortOrder);
+  const byId = new Map(sorted.map((q) => [q.id, q]));
+  const out: RegistrationQuestionDraft[] = [];
+  const seen = new Set<string>();
+  const visiting = new Set<string>();
+
+  function visit(q: RegistrationQuestionDraft) {
+    if (seen.has(q.id)) return;
+    if (visiting.has(q.id)) return;
+    visiting.add(q.id);
+    if (q.dependsOnQuestionId) {
+      const parent = byId.get(q.dependsOnQuestionId);
+      if (parent) visit(parent);
+    }
+    visiting.delete(q.id);
+    seen.add(q.id);
+    out.push(q);
+  }
+
+  for (const q of sorted) visit(q);
+  return out;
 }
 
 export function parseJoinApprovalConfigJson(raw: unknown): JoinApprovalConfig | null {
@@ -68,7 +139,10 @@ export function parseJoinApprovalConfigJson(raw: unknown): JoinApprovalConfig | 
   }
 }
 
-function normalizeAnswerValue(questionType: string, value: string): string {
+export function normalizeRegistrationAnswerValue(
+  questionType: string,
+  value: string,
+): string {
   const v = value.trim();
   if (questionType === "checkbox") {
     return v === "true" || v === "on" || v === "1" ? "true" : "false";
@@ -121,7 +195,7 @@ export function evaluateJoinApprovalOutcome(
   for (const [qid, val] of Object.entries(answersByQuestionId)) {
     const q = questionsById.get(qid);
     normalized[qid] = q
-      ? normalizeAnswerValue(q.questionType, val)
+      ? normalizeRegistrationAnswerValue(q.questionType, val)
       : val.trim();
   }
 
@@ -141,12 +215,51 @@ export function isQuestionVisible(
   if (!q.dependsOnQuestionId) return true;
   const parent = questionsById.get(q.dependsOnQuestionId);
   if (!parent) return true;
-  const parentAnswer = normalizeAnswerValue(
+  const parentAnswer = normalizeRegistrationAnswerValue(
     parent.questionType,
     answers[q.dependsOnQuestionId] ?? "",
   );
-  const expected = (q.dependsOnValue ?? "true").trim();
+  const expected = resolveDependsOnExpected(parent, q.dependsOnValue);
   return parentAnswer === expected;
+}
+
+export function pruneAnswersForVisibility(
+  questions: RegistrationQuestionDraft[],
+  answers: Record<string, string>,
+): Record<string, string> {
+  const byId = new Map(questions.map((q) => [q.id, q]));
+  const next: Record<string, string> = { ...answers };
+
+  for (const q of questions) {
+    if (isQuestionVisible(q, next, byId)) continue;
+    if (q.questionType === "checkbox") {
+      next[q.id] = "false";
+    } else {
+      delete next[q.id];
+    }
+  }
+
+  return next;
+}
+
+export function collectVisibleAnswers(
+  questions: RegistrationQuestionDraft[],
+  formAnswers: Record<string, string>,
+): Record<string, string> {
+  const byId = new Map(questions.map((q) => [q.id, q]));
+  const pruned = pruneAnswersForVisibility(questions, formAnswers);
+  const visible: Record<string, string> = {};
+
+  for (const q of questions) {
+    if (!isQuestionVisible(q, pruned, byId)) continue;
+    if (q.questionType === "checkbox") {
+      visible[q.id] = pruned[q.id] ?? "false";
+    } else {
+      visible[q.id] = pruned[q.id] ?? "";
+    }
+  }
+
+  return visible;
 }
 
 export function validateRegistrationAnswers(

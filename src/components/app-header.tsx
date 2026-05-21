@@ -2,7 +2,8 @@ import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 
-import { ClubSocialLinks } from "@/components/club-social-links";
+import { AppHeaderMobileMenu } from "@/components/app-header-mobile-menu";
+// import { ClubSocialLinks } from "@/components/club-social-links";
 import {
   HeaderToolbar,
   HeaderToolbarDivider,
@@ -32,36 +33,35 @@ export async function AppHeader() {
 
   return (
     <header className="sticky top-0 z-50 max-w-full border-b border-zinc-200/80 bg-white/90 backdrop-blur-md">
-      <div className={cn(siteContainerClass, "flex h-14 min-w-0 items-center gap-3 sm:gap-4")}>
-        <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
-          <Link
-            href="/"
-            className="flex shrink-0 opacity-95 transition hover:opacity-100"
-            aria-label={dict.home.titleAlt}
-          >
-            <Image
-              src="/kayserisocialrun_logo.png"
-              alt={dict.home.titleAlt}
-              width={220}
-              height={56}
-              className="h-9 w-auto sm:h-10"
-              priority
-            />
-          </Link>
-          <ClubSocialLinks
-            instagramAria={dict.nav.socialInstagram}
-            whatsappAria={dict.nav.socialWhatsapp}
+      <div className={cn(siteContainerClass, "flex h-14 min-w-0 items-center gap-2 sm:gap-3")}>
+        <Link
+          href="/"
+          className="flex min-w-0 shrink items-center"
+          aria-label={dict.home.titleAlt}
+        >
+          <Image
+            src="/kayserisocialrun_logo.png"
+            alt={dict.home.titleAlt}
+            width={220}
+            height={56}
+            className="h-8 w-auto max-w-[9.5rem] sm:h-9 sm:max-w-none md:h-10"
+            priority
           />
-        </div>
+        </Link>
 
-        <HeaderToolbar>
-          <HeaderNavLink href="/" className="hidden sm:inline-flex">
-            {dict.nav.about}
-          </HeaderNavLink>
+        {/* Club social links — temporarily hidden */}
+        {/* <ClubSocialLinks
+          className="flex shrink-0 max-md:flex md:flex"
+          instagramAria={dict.nav.socialInstagram}
+          whatsappAria={dict.nav.socialWhatsapp}
+        /> */}
+
+        <HeaderToolbar className="hidden md:flex">
+          <HeaderNavLink href="/">{dict.nav.about}</HeaderNavLink>
 
           <HeaderToolbarDivider />
 
-          <div className="@container/topbar flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="@container/topbar flex shrink-0 items-center gap-2">
             <KayseriWeatherClock locale={locale} labels={dict.navWeather} />
             <LocaleSwitcher
               locale={locale}
@@ -87,6 +87,19 @@ export async function AppHeader() {
             </HeaderUtilityCluster>
           )}
         </HeaderToolbar>
+
+        <div className="ml-auto flex shrink-0 md:hidden">
+          <AppHeaderMobileMenu
+            locale={locale}
+            nav={dict.nav}
+            localeLabels={{
+              english: dict.locale.switchToEnglish,
+              turkish: dict.locale.switchToTurkish,
+            }}
+            weatherLabels={dict.navWeather}
+            loggedIn={loggedIn}
+          />
+        </div>
       </div>
     </header>
   );

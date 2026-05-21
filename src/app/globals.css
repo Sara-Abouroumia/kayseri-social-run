@@ -23,3 +23,56 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+@keyframes idea-vault-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-2.75rem) rotate(calc(var(--drop-r, 0deg) - 12deg));
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(0.4rem) rotate(calc(var(--drop-r, 0deg) + 4deg));
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--drop-r, 0deg));
+  }
+}
+
+@keyframes idea-vault-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-4deg);
+  }
+  75% {
+    transform: rotate(4deg);
+  }
+}
+
+.idea-vault-drop-item {
+  animation: idea-vault-drop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.idea-sharpie-title {
+  letter-spacing: 0.03em;
+  -webkit-font-smoothing: antialiased;
+  text-shadow: 0.25px 0.5px 0 rgba(0, 0, 0, 0.08);
+}
+
+.idea-vault-wiggle {
+  animation: idea-vault-wiggle 0.45s ease-in-out;
+}
+
+.idea-vault-part {
+  transform-box: fill-box;
+  transition: transform 0.35s cubic-bezier(0.34, 1.1, 0.54, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .idea-vault-part {
+    transition: none;
+  }
+}

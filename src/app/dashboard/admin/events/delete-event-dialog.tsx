@@ -3,13 +3,17 @@
 import { useActionState, useState } from "react";
 
 import { deleteEventAction } from "@/app/dashboard/admin/events/events-actions";
+import type { Messages } from "@/i18n/messages/en";
+
+type Copy = Messages["adminEventForm"];
 
 type DeleteEventDialogProps = {
   eventId: string;
   title: string;
+  copy: Copy;
 };
 
-export function DeleteEventDialog({ eventId, title }: DeleteEventDialogProps) {
+export function DeleteEventDialog({ eventId, title, copy }: DeleteEventDialogProps) {
   const [open, setOpen] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState("");
   const [state, formAction, isPending] = useActionState(
@@ -18,13 +22,13 @@ export function DeleteEventDialog({ eventId, title }: DeleteEventDialogProps) {
   );
 
   return (
-    <>
+    <div className="shrink-0">
       <button
         type="button"
         onClick={() => setOpen(true)}
         className="text-sm font-medium text-red-800 underline decoration-red-300 underline-offset-2 hover:decoration-red-800"
       >
-        Delete
+        {copy.delete}
       </button>
 
       {open ? (
@@ -45,12 +49,9 @@ export function DeleteEventDialog({ eventId, title }: DeleteEventDialogProps) {
               id="delete-event-title"
               className="text-lg font-semibold text-zinc-900"
             >
-              Delete event
+              {copy.deleteEvent}
             </h2>
-            <p className="mt-2 text-sm text-zinc-600">
-              This cannot be undone. Type the event title exactly as shown below
-              to confirm.
-            </p>
+            <p className="mt-2 text-sm text-zinc-600">{copy.deleteConfirmBlurb}</p>
             <p className="mt-3 rounded border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm text-zinc-800">
               {title}
             </p>
@@ -58,7 +59,7 @@ export function DeleteEventDialog({ eventId, title }: DeleteEventDialogProps) {
               <input type="hidden" name="eventId" value={eventId} />
               <div>
                 <label htmlFor={`confirm-${eventId}`} className="sr-only">
-                  Type title to confirm
+                  {copy.confirmTitleSr}
                 </label>
                 <input
                   id={`confirm-${eventId}`}
@@ -66,7 +67,7 @@ export function DeleteEventDialog({ eventId, title }: DeleteEventDialogProps) {
                   value={confirmTitle}
                   onChange={(e) => setConfirmTitle(e.target.value)}
                   autoComplete="off"
-                  placeholder="Type the full title"
+                  placeholder={copy.deleteConfirmPlaceholder}
                   className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
                 />
               </div>
@@ -79,14 +80,14 @@ export function DeleteEventDialog({ eventId, title }: DeleteEventDialogProps) {
                     setConfirmTitle("");
                   }}
                 >
-                  Cancel
+                  {copy.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
                   className="rounded-md bg-red-800 px-3 py-2 text-sm font-medium text-white hover:bg-red-900 disabled:opacity-50"
                 >
-                  {isPending ? "Deleting…" : "Delete permanently"}
+                  {isPending ? copy.deleting : copy.deletePermanently}
                 </button>
               </div>
             </form>
@@ -98,6 +99,6 @@ export function DeleteEventDialog({ eventId, title }: DeleteEventDialogProps) {
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

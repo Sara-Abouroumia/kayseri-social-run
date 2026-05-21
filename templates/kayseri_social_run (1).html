@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kayseri Social Run — Run Together. Rise Together.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --red: #D91F06;
+  --red-light: #FF2F14;
+  --red-bg: #FFF0EE;
+  --black: #0A0A0A;
+  --ink: #1A1410;
+  --dark-gray: #3D3830;
+  --mid-gray: #7A746E;
+  --light-gray: #B8B2AC;
+  --border: #E4DED8;
+  --surface: #F7F4F1;
+  --white: #FFFFFF;
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--white); color: var(--ink); font-family: 'DM Sans', sans-serif; overflow-x: hidden; cursor: none; }
+
+.cursor { position: fixed; width: 10px; height: 10px; background: var(--red); border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); transition: width .25s, height .25s; }
+.cring { position: fixed; width: 36px; height: 36px; border: 1.5px solid rgba(217,31,6,.35); border-radius: 50%; pointer-events: none; z-index: 9998; transform: translate(-50%,-50%); transition: width .3s, height .3s; }
+.pbar { position: fixed; top: 0; left: 0; height: 3px; background: var(--red); z-index: 300; width: 0; transition: width .08s linear; }
+
+/* NAV */
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; height: 68px; padding: 0 52px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,.88); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); }
+.nlogo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: .14em; color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+.npip { width: 9px; height: 9px; background: var(--red); border-radius: 50%; animation: pip 2.4s ease-in-out infinite; }
+@keyframes pip { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.6);opacity:.5} }
+.nlinks { display: flex; gap: 32px; align-items: center; }
+.nlinks a { font-size: 11px; font-weight: 500; letter-spacing: .13em; text-transform: uppercase; color: var(--mid-gray); text-decoration: none; transition: color .2s; }
+.nlinks a:hover { color: var(--ink); }
+.ncta { font-family: 'Space Mono', monospace !important; font-size: 11px !important; background: var(--red); color: var(--white) !important; padding: 10px 22px; border-radius: 2px; transition: background .2s, transform .2s !important; }
+.ncta:hover { background: var(--red-light) !important; transform: translateY(-1px); }
+
+/* HERO */
+.hero { min-height: 100vh; padding: 0 52px 88px; display: flex; flex-direction: column; justify-content: flex-end; position: relative; overflow: hidden; background: var(--white); }
+.hstripe { position: absolute; top: 0; right: 0; width: 46%; height: 100%; background: var(--red); clip-path: polygon(16% 0,100% 0,100% 100%,0% 100%); }
+.hgrid { position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px); background-size: 64px 64px; opacity: .38; mask-image: linear-gradient(to bottom,transparent 8%,black 28%,black 70%,transparent 100%); pointer-events: none; }
+.hmtn { position: absolute; bottom: 0; right: 0; width: 50%; opacity: .13; pointer-events: none; }
+.hrun { position: absolute; right: 52px; bottom: 80px; width: 420px; pointer-events: none; animation: floatX 9s ease-in-out infinite; }
+@keyframes floatX { 0%,100%{transform:translateX(0)} 50%{transform:translateX(-14px)} }
+.heyebrow { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--red); margin-bottom: 22px; display: flex; align-items: center; gap: 14px; opacity: 0; animation: su .9s .15s forwards; }
+.heyebrow::before { content: ''; width: 36px; height: 1px; background: var(--red); }
+.hhead { font-family: 'Bebas Neue', sans-serif; font-size: clamp(80px,11.5vw,154px); line-height: .87; letter-spacing: -.01em; color: var(--ink); max-width: 780px; position: relative; z-index: 2; opacity: 0; animation: su .9s .3s forwards; }
+.hhead .hr { color: var(--red); }
+.hhead .ho { -webkit-text-stroke: 2px var(--ink); color: transparent; }
+.hsub { margin-top: 44px; display: flex; align-items: flex-end; gap: 64px; position: relative; z-index: 2; opacity: 0; animation: su .9s .5s forwards; }
+.htag { font-size: 15px; font-weight: 300; line-height: 1.75; color: var(--dark-gray); max-width: 300px; }
+.hctas { display: flex; gap: 14px; align-items: center; }
+.btnred { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; background: var(--red); color: var(--white); padding: 15px 34px; border-radius: 2px; text-decoration: none; transition: background .2s, transform .2s; display: inline-block; }
+.btnred:hover { background: var(--red-light); transform: translateY(-2px); }
+.btnout { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; background: transparent; color: var(--dark-gray); padding: 15px 34px; border-radius: 2px; text-decoration: none; border: 1.5px solid var(--border); transition: border-color .2s, color .2s; }
+.btnout:hover { border-color: var(--ink); color: var(--ink); }
+.hscroll { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--light-gray); animation: bounce 2.2s ease-in-out infinite; }
+.hscroll::after { content: ''; width: 1px; height: 36px; background: linear-gradient(var(--light-gray),transparent); }
+@keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(7px)} }
+@keyframes su { from{opacity:0;transform:translateY(32px)} to{opacity:1;transform:translateY(0)} }
+
+/* MARQUEE */
+.mwrap { background: var(--ink); overflow: hidden; padding: 16px 0; }
+.mtrack { display: flex; animation: mar 28s linear infinite; white-space: nowrap; }
+.mitem { font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: .14em; color: rgba(255,255,255,.4); padding: 0 52px; display: flex; align-items: center; gap: 52px; }
+.mpip { width: 5px; height: 5px; background: var(--red); border-radius: 50%; }
+@keyframes mar { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+/* STATS */
+.sbar { display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid var(--border); }
+.si { padding: 64px 44px; border-right: 1px solid var(--border); transition: background .3s; }
+.si:last-child { border-right: none; }
+.si:hover { background: var(--red-bg); }
+.si:hover .snum { color: var(--red); }
+.snum { font-family: 'Bebas Neue', sans-serif; font-size: 70px; line-height: 1; color: var(--ink); transition: color .3s; display: flex; align-items: baseline; gap: 2px; }
+.splus { font-size: 44px; color: var(--red); }
+.slabel { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; color: var(--mid-gray); font-weight: 500; margin-top: 10px; }
+.ssub { font-size: 12px; color: var(--light-gray); font-weight: 300; margin-top: 4px; }
+
+/* EYEBROW */
+.eb { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--red); display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.ebn { font-size: 9px; color: rgba(217,31,6,.35); }
+.sh { font-family: 'Bebas Neue', sans-serif; font-size: 68px; line-height: .9; color: var(--ink); }
+
+/* PHILOSOPHY */
+.phi { padding: 128px 52px; display: grid; grid-template-columns: 1fr 1.3fr; gap: 96px; align-items: center; }
+.pbody { font-size: 16px; line-height: 1.82; color: var(--mid-gray); font-weight: 300; margin-bottom: 14px; }
+.pvals { margin-top: 44px; border-top: 1px solid var(--border); }
+.vrow { display: flex; align-items: center; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: padding-left .28s; }
+.vrow:hover { padding-left: 10px; }
+.vrow:hover .vn { color: var(--ink); }
+.vrow:hover .va { color: var(--red); transform: translateX(4px); }
+.vi { font-family: 'Space Mono', monospace; font-size: 9px; color: rgba(217,31,6,.4); min-width: 20px; }
+.vn { font-size: 13px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--dark-gray); flex: 1; transition: color .2s; }
+.va { font-size: 16px; color: var(--light-gray); transition: transform .25s, color .2s; }
+.pvis { height: 540px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.pvbg { font-family: 'Bebas Neue', sans-serif; font-size: 200px; color: rgba(217,31,6,.05); letter-spacing: -.04em; line-height: 1; position: absolute; user-select: none; }
+.pbadge { position: absolute; bottom: 28px; left: 28px; right: 28px; background: rgba(255,255,255,.93); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 3px; padding: 22px 26px; }
+.pblab { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .2em; color: var(--red); text-transform: uppercase; margin-bottom: 8px; }
+.pbquote { font-size: 14px; color: var(--dark-gray); line-height: 1.65; font-style: italic; font-weight: 300; }
+
+/* EVENTS */
+.evs { padding: 128px 52px; background: var(--surface); }
+.evhdr { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 56px; }
+.alink { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--mid-gray); text-decoration: none; border-bottom: 1px solid var(--border); padding-bottom: 2px; transition: color .2s, border-color .2s; }
+.alink:hover { color: var(--red); border-color: var(--red); }
+.egrid { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 2px; }
+.ecard { background: var(--white); padding: 38px 32px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; cursor: pointer; border: 1px solid var(--border); transition: border-color .25s, box-shadow .25s, transform .25s; }
+.ecard:hover { border-color: var(--red); box-shadow: 4px 4px 0 var(--red); transform: translate(-2px,-2px); }
+.ecard::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform .35s cubic-bezier(.4,0,.2,1); }
+.ecard:hover::before { transform: scaleX(1); }
+.ecard.feat { grid-row: span 2; background: var(--red); border-color: var(--red); }
+.ecard.feat:hover { box-shadow: 4px 4px 0 var(--ink); border-color: var(--ink); }
+.edate { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--mid-gray); }
+.ecard.feat .edate { color: rgba(255,255,255,.55); }
+.ename { font-family: 'Bebas Neue', sans-serif; font-size: 38px; color: var(--ink); line-height: 1; }
+.ecard.feat .ename { font-size: 56px; color: var(--white); }
+.emeta { display: flex; gap: 20px; font-size: 12px; color: var(--mid-gray); flex-wrap: wrap; }
+.ecard.feat .emeta { color: rgba(255,255,255,.6); }
+.epip { width: 4px; height: 4px; background: var(--red); border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+.ecard.feat .epip { background: rgba(255,255,255,.5); }
+.edesc { font-size: 13px; color: var(--mid-gray); line-height: 1.72; font-weight: 300; }
+.ecard.feat .edesc { color: rgba(255,255,255,.65); }
+.etag { display: inline-flex; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; padding: 4px 12px; border-radius: 2px; width: fit-content; border: 1px solid rgba(217,31,6,.2); color: var(--red); background: var(--red-bg); }
+.ecard.feat .etag { background: rgba(255,255,255,.15); color: var(--white); border-color: rgba(255,255,255,.25); }
+.ebig { font-family: 'Bebas Neue', sans-serif; position: absolute; bottom: -8px; right: 16px; font-size: 90px; line-height: 1; color: rgba(0,0,0,.04); pointer-events: none; }
+.ecard.feat .ebig { color: rgba(255,255,255,.08); }
+
+/* MERCH */
+.merch { padding: 128px 52px; }
+.mhdr { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 64px; }
+.mgrid { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; }
+.mcard { background: var(--surface); border: 1px solid var(--border); display: flex; flex-direction: column; cursor: pointer; transition: border-color .25s, transform .25s; position: relative; overflow: hidden; }
+.mcard:hover { border-color: var(--red); transform: translateY(-4px); }
+.mcard:hover .mlayer { transform: scale(1.04); }
+.mimg { aspect-ratio: 4/5; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; }
+.mlayer { width: 100%; height: 100%; transition: transform .5s ease; display: flex; align-items: center; justify-content: center; }
+.mbnew { position: absolute; top: 16px; left: 16px; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; background: var(--red); color: var(--white); padding: 4px 10px; border-radius: 2px; }
+.mbsold { position: absolute; top: 16px; left: 16px; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; background: var(--ink); color: var(--white); padding: 4px 10px; border-radius: 2px; }
+.minfo { padding: 20px 22px 24px; border-top: 1px solid var(--border); }
+.mcat { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: var(--red); margin-bottom: 6px; }
+.mname { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--ink); margin-bottom: 10px; }
+.mrow { display: flex; justify-content: space-between; align-items: center; }
+.mprice { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--ink); font-weight: 700; }
+.msizes { font-size: 11px; color: var(--light-gray); }
+.mctarow { text-align: center; margin-top: 56px; }
+.mannounce { font-size: 14px; color: var(--mid-gray); font-weight: 300; margin-bottom: 24px; max-width: 440px; margin-left: auto; margin-right: auto; line-height: 1.7; }
+
+/* COMMUNITY */
+.comm { padding: 128px 52px; background: var(--ink); }
+.commhdr { text-align: center; margin-bottom: 72px; }
+.cgrid { display: grid; grid-template-columns: repeat(12,1fr); grid-template-rows: repeat(2,190px); gap: 3px; margin-bottom: 52px; }
+.cc { background: #181818; border-radius: 1px; overflow: hidden; position: relative; cursor: pointer; transition: transform .3s; }
+.cc:hover { transform: scale(.97); }
+.cc::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top,rgba(217,31,6,.45),transparent 55%); opacity: 0; transition: opacity .3s; }
+.cc:hover::after { opacity: 1; }
+.cc1 { grid-column: span 4; grid-row: span 2; background: #1A1A1A; }
+.cc2 { grid-column: span 3; background: #222; }
+.cc3 { grid-column: span 2; background: #1C1C1C; }
+.cc4 { grid-column: span 3; background: #151515; }
+.cc5 { grid-column: span 3; background: #1E1E1E; }
+.cc6 { grid-column: span 2; background: #202020; }
+.cc7 { grid-column: span 3; background: #1A1A1A; }
+.cci { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 4px; }
+.cctl { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: .12em; color: rgba(255,255,255,.07); }
+.commcta { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.commctatxt { font-size: 14px; color: rgba(255,255,255,.38); max-width: 380px; line-height: 1.7; font-weight: 300; }
+.btnghost { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; background: transparent; color: rgba(255,255,255,.5); padding: 13px 28px; border-radius: 2px; text-decoration: none; border: 1.5px solid rgba(255,255,255,.14); transition: color .2s, border-color .2s; }
+.btnghost:hover { color: var(--white); border-color: rgba(255,255,255,.38); }
+
+/* FOUNDERS */
+.found { padding: 128px 52px; background: var(--white); }
+.foundhdr { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 72px; }
+.fgrid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; }
+.fcard { padding: 44px 36px; border: 1px solid var(--border); position: relative; overflow: hidden; cursor: pointer; transition: border-color .25s, background .25s; display: flex; flex-direction: column; gap: 20px; }
+.fcard:hover { border-color: var(--red); background: var(--red-bg); }
+.fcard:hover .frole { color: var(--red); }
+.fcard:hover .fnum { color: var(--red); opacity: .15; }
+.favatar { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: .05em; border: 2px solid var(--border); background: var(--surface); color: var(--ink); transition: border-color .25s, background .25s; position: relative; z-index: 1; }
+.fcard:hover .favatar { border-color: var(--red); background: rgba(217,31,6,.08); }
+.fname { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--ink); line-height: .95; }
+.frole { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--mid-gray); transition: color .25s; }
+.fbio { font-size: 13px; line-height: 1.75; color: var(--mid-gray); font-weight: 300; }
+.fsince { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .14em; color: var(--light-gray); text-transform: uppercase; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.fnum { position: absolute; bottom: -20px; right: 20px; font-family: 'Bebas Neue', sans-serif; font-size: 130px; color: rgba(0,0,0,.03); line-height: 1; transition: color .25s, opacity .25s; }
+
+/* JOIN */
+.join { margin: 0 52px 52px; border-radius: 4px; overflow: hidden; background: var(--red); padding: 96px 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; position: relative; }
+.join::before { content: 'KSR'; position: absolute; right: -20px; top: 50%; transform: translateY(-50%); font-family: 'Bebas Neue', sans-serif; font-size: 260px; color: rgba(0,0,0,.08); letter-spacing: -.04em; line-height: 1; pointer-events: none; }
+.joinh { font-family: 'Bebas Neue', sans-serif; font-size: 76px; line-height: .88; color: var(--white); }
+.joinbody { font-size: 15px; line-height: 1.75; color: rgba(255,255,255,.72); font-weight: 300; margin-bottom: 32px; }
+.joinform { display: flex; }
+.joinin { flex: 1; padding: 15px 18px; border: 1.5px solid rgba(255,255,255,.22); border-right: none; background: rgba(255,255,255,.1); color: var(--white); font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; border-radius: 2px 0 0 2px; }
+.joinin::placeholder { color: rgba(255,255,255,.35); }
+.joinin:focus { background: rgba(255,255,255,.18); }
+.joinbtn { padding: 15px 22px; background: var(--ink); color: var(--white); border: none; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; border-radius: 0 2px 2px 0; transition: background .2s; }
+.joinbtn:hover { background: #2A2A2A; }
+.joinperks { display: flex; gap: 18px; margin-top: 18px; flex-wrap: wrap; }
+.perk { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .1em; color: rgba(255,255,255,.5); text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.perk::before { content: '✓'; color: rgba(255,255,255,.65); }
+
+/* FOOTER */
+footer { padding: 72px 52px 36px; border-top: 1px solid var(--border); }
+.ftop { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 56px; margin-bottom: 64px; }
+.flogo { font-family: 'Bebas Neue', sans-serif; font-size: 34px; color: var(--ink); letter-spacing: .1em; margin-bottom: 14px; }
+.fdesc { font-size: 13px; line-height: 1.75; color: var(--mid-gray); font-weight: 300; max-width: 240px; }
+.fsocs { display: flex; gap: 10px; margin-top: 24px; }
+.fsoc { width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--mid-gray); text-decoration: none; transition: border-color .2s, color .2s, background .2s; }
+.fsoc:hover { border-color: var(--red); color: var(--white); background: var(--red); }
+.fct { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--red); margin-bottom: 20px; }
+.flinks { display: flex; flex-direction: column; gap: 10px; }
+.flinks a { font-size: 13px; color: var(--mid-gray); text-decoration: none; transition: color .2s; }
+.flinks a:hover { color: var(--ink); }
+.fbot { display: flex; justify-content: space-between; align-items: center; padding-top: 28px; border-top: 1px solid var(--border); }
+.fcopy { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .1em; color: var(--light-gray); text-transform: uppercase; }
+.floc { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .1em; color: var(--light-gray); text-transform: uppercase; display: flex; align-items: center; gap: 7px; }
+.floc::before { content: '●'; color: var(--red); font-size: 7px; animation: pip 2.4s infinite; }
+
+/* REVEAL */
+.rev, .revl, .revr { opacity: 0; transition: opacity .85s ease, transform .85s ease; }
+.rev { transform: translateY(36px); }
+.revl { transform: translateX(-36px); }
+.revr { transform: translateX(36px); }
+.rev.in, .revl.in, .revr.in { opacity: 1; transform: none; }
+
+@media(max-width:900px){
+  nav { padding: 0 24px; }
+  .nlinks { display: none; }
+  .hero,.phi,.evs,.merch,.comm,.found,footer { padding-left: 24px; padding-right: 24px; }
+  .hstripe,.hmtn { display: none; }
+  .hrun { width: 220px; opacity: .1; right: 24px; bottom: 56px; }
+  .sbar { grid-template-columns: 1fr 1fr; }
+  .si { padding: 44px 24px; }
+  .phi { grid-template-columns: 1fr; padding-top: 80px; padding-bottom: 80px; gap: 48px; }
+  .pvis { height: 280px; }
+  .egrid { grid-template-columns: 1fr; }
+  .ecard.feat { grid-row: span 1; }
+  .mgrid { grid-template-columns: 1fr 1fr; }
+  .cgrid { grid-template-rows: repeat(4,130px); }
+  .cc1 { grid-column: span 12; grid-row: span 1; }
+  .cc2,.cc3,.cc4,.cc5,.cc6,.cc7 { grid-column: span 6; }
+  .fgrid { grid-template-columns: 1fr; }
+  .join { margin: 0 24px 24px; padding: 56px 36px; grid-template-columns: 1fr; }
+  .join::before { font-size: 130px; }
+  .ftop { grid-template-columns: 1fr 1fr; gap: 40px; }
+  .sh { font-size: 52px; }
+  .hsub { flex-direction: column; gap: 32px; }
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cur"></div>
+<div class="cring" id="cr"></div>
+<div class="pbar" id="pb"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nlogo"><div class="npip"></div>KSR</a>
+  <div class="nlinks">
+    <a href="#about">About</a>
+    <a href="#events">Events</a>
+    <a href="#merch">Merch</a>
+    <a href="#team">Team</a>
+    <a href="https://www.instagram.com/kayserisocialrun/" target="_blank">Instagram</a>
+    <a href="#join" class="ncta">Join the Club →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hstripe"></div>
+  <div class="hgrid"></div>
+  <svg class="hmtn" viewBox="0 0 900 380" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="0,380 200,70 340,160 440,18 580,130 740,52 900,110 900,380" fill="#D91F06"/>
+  </svg>
+  <svg class="hrun" viewBox="0 0 520 260" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="72" cy="28" r="14" fill="#D91F06"/>
+    <line x1="72" y1="42" x2="70" y2="108" stroke="#D91F06" stroke-width="7" stroke-linecap="round"/>
+    <line x1="71" y1="72" x2="44" y2="96" stroke="#D91F06" stroke-width="6" stroke-linecap="round"/>
+    <line x1="71" y1="72" x2="100" y2="90" stroke="#D91F06" stroke-width="6" stroke-linecap="round"/>
+    <line x1="70" y1="108" x2="48" y2="150" stroke="#D91F06" stroke-width="7" stroke-linecap="round"/>
+    <line x1="70" y1="108" x2="96" y2="146" stroke="#D91F06" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="210" cy="22" r="17" fill="#1A1410"/>
+    <line x1="210" y1="39" x2="208" y2="118" stroke="#1A1410" stroke-width="9" stroke-linecap="round"/>
+    <line x1="209" y1="76" x2="176" y2="102" stroke="#1A1410" stroke-width="8" stroke-linecap="round"/>
+    <line x1="209" y1="76" x2="244" y2="94" stroke="#1A1410" stroke-width="8" stroke-linecap="round"/>
+    <line x1="208" y1="118" x2="182" y2="166" stroke="#1A1410" stroke-width="9" stroke-linecap="round"/>
+    <line x1="208" y1="118" x2="238" y2="162" stroke="#1A1410" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="360" cy="18" r="19" fill="#D91F06"/>
+    <line x1="360" y1="37" x2="356" y2="122" stroke="#D91F06" stroke-width="10" stroke-linecap="round"/>
+    <line x1="358" y1="78" x2="322" y2="106" stroke="#D91F06" stroke-width="9" stroke-linecap="round"/>
+    <line x1="358" y1="78" x2="398" y2="96" stroke="#D91F06" stroke-width="9" stroke-linecap="round"/>
+    <line x1="356" y1="122" x2="328" y2="174" stroke="#D91F06" stroke-width="10" stroke-linecap="round"/>
+    <line x1="356" y1="122" x2="390" y2="170" stroke="#D91F06" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="480" cy="26" r="13" fill="#1A1410"/>
+    <line x1="480" y1="39" x2="478" y2="110" stroke="#1A1410" stroke-width="7" stroke-linecap="round"/>
+    <line x1="479" y1="73" x2="456" y2="93" stroke="#1A1410" stroke-width="6" stroke-linecap="round"/>
+    <line x1="479" y1="73" x2="504" y2="88" stroke="#1A1410" stroke-width="6" stroke-linecap="round"/>
+    <line x1="478" y1="110" x2="457" y2="148" stroke="#1A1410" stroke-width="7" stroke-linecap="round"/>
+    <line x1="478" y1="110" x2="502" y2="145" stroke="#1A1410" stroke-width="7" stroke-linecap="round"/>
+    <line x1="0" y1="196" x2="140" y2="196" stroke="#D91F06" stroke-width="1.5" opacity=".22"/>
+    <line x1="160" y1="196" x2="310" y2="196" stroke="#D91F06" stroke-width="1.5" opacity=".22"/>
+    <line x1="330" y1="196" x2="470" y2="196" stroke="#D91F06" stroke-width="1.5" opacity=".22"/>
+  </svg>
+  <div style="position:relative;z-index:2;">
+    <div class="heyebrow">Kayseri Social Run — Est. 2022</div>
+    <h1 class="hhead">Run<br><span class="ho">Together</span><br><span class="hr">Rise</span> Together</h1>
+    <div class="hsub">
+      <p class="htag">Kayseri'nin kalbinde doğan bir koşu hareketi. Asfaltta, dağda, birlikte.</p>
+      <div class="hctas">
+        <a href="#join" class="btnred">Join the Club</a>
+        <a href="#events" class="btnout">Next Run ↓</a>
+      </div>
+    </div>
+  </div>
+  <div class="hscroll">Scroll</div>
+</section>
+
+<!-- MARQUEE -->
+<div class="mwrap">
+  <div class="mtrack" id="mt">
+    <div class="mitem">Kayseri Social Run <span class="mpip"></span></div>
+    <div class="mitem">Weekly Runs <span class="mpip"></span></div>
+    <div class="mitem">Erciyes Trails <span class="mpip"></span></div>
+    <div class="mitem">Urban Streets <span class="mpip"></span></div>
+    <div class="mitem">Community First <span class="mpip"></span></div>
+    <div class="mitem">Every Pace Welcome <span class="mpip"></span></div>
+    <div class="mitem">Kayseri Social Run <span class="mpip"></span></div>
+    <div class="mitem">Weekly Runs <span class="mpip"></span></div>
+    <div class="mitem">Erciyes Trails <span class="mpip"></span></div>
+    <div class="mitem">Urban Streets <span class="mpip"></span></div>
+    <div class="mitem">Community First <span class="mpip"></span></div>
+    <div class="mitem">Every Pace Welcome <span class="mpip"></span></div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="sbar">
+  <div class="si rev"><div class="snum"><span class="counter" data-target="300">0</span><span class="splus">+</span></div><div class="slabel">Active Members</div><div class="ssub">Kayseri &amp; surroundings</div></div>
+  <div class="si rev" style="transition-delay:.1s"><div class="snum"><span class="counter" data-target="52">0</span></div><div class="slabel">Runs Per Year</div><div class="ssub">Rain, snow or shine</div></div>
+  <div class="si rev" style="transition-delay:.2s"><div class="snum"><span class="counter" data-target="12000">0</span><span class="splus">+</span></div><div class="slabel">KM Logged Together</div><div class="ssub">Every step counts</div></div>
+  <div class="si rev" style="transition-delay:.3s"><div class="snum"><span class="counter" data-target="3">0</span></div><div class="slabel">Years of Movement</div><div class="ssub">Born in Kayseri, 2022</div></div>
+</div>
+
+<!-- PHILOSOPHY -->
+<section class="phi" id="about">
+  <div>
+    <div class="eb rev"><span class="ebn">01</span> Our Philosophy</div>
+    <h2 class="sh rev" style="margin-bottom:28px;">More Than<br>Miles.</h2>
+    <p class="pbody rev">We're not just a running club. We're a movement born in the streets and trails of Kayseri — fuelled by youth energy, the shadow of Erciyes, and the belief that sport builds community.</p>
+    <p class="pbody rev">Every Saturday morning, we lace up together. Every finish line, we cross together. No pace requirements, no ego — just people who believe in showing up.</p>
+    <div class="pvals rev">
+      <div class="vrow"><span class="vi">01</span><span class="vn">Community Over Competition</span><span class="va">→</span></div>
+      <div class="vrow"><span class="vi">02</span><span class="vn">Every Pace Is Valid</span><span class="va">→</span></div>
+      <div class="vrow"><span class="vi">03</span><span class="vn">Move the City Forward</span><span class="va">→</span></div>
+      <div class="vrow"><span class="vi">04</span><span class="vn">Youth-Led, City-Loved</span><span class="va">→</span></div>
+    </div>
+  </div>
+  <div class="pvis revr">
+    <div class="pvbg">KSR</div>
+    <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.07" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+      <polygon points="0,300 110,70 200,150 260,20 340,100 400,55 400,300" fill="#D91F06"/>
+      <line x1="0" y1="220" x2="400" y2="220" stroke="#D91F06" stroke-width="0.5" stroke-dasharray="5,10"/>
+      <line x1="0" y1="180" x2="400" y2="180" stroke="#D91F06" stroke-width="0.5" stroke-dasharray="5,10"/>
+    </svg>
+    <div class="pbadge">
+      <div class="pblab">From our founder</div>
+      <p class="pbquote">"We built this for the people who thought they weren't runners. Turns out, we all are."</p>
+    </div>
+  </div>
+</section>
+
+<!-- EVENTS -->
+<section class="evs" id="events">
+  <div class="evhdr">
+    <div>
+      <div class="eb rev"><span class="ebn">02</span> Upcoming Runs</div>
+      <h2 class="sh rev">Next on<br>the Road</h2>
+    </div>
+    <a href="https://www.instagram.com/kayserisocialrun/" target="_blank" class="alink">All Events →</a>
+  </div>
+  <div class="egrid rev">
+    <div class="ecard feat">
+      <div class="etag">Featured</div>
+      <div class="edate">Saturday — 24 May 2025 · 08:00</div>
+      <div class="ename">Erciyes<br>Sunrise Run</div>
+      <div class="emeta">
+        <span style="display:flex;align-items:center;gap:6px;"><span class="epip"></span>Erciyes Etegi</span>
+        <span style="display:flex;align-items:center;gap:6px;"><span class="epip"></span>12 km</span>
+        <span style="display:flex;align-items:center;gap:6px;"><span class="epip"></span>Trail</span>
+      </div>
+      <p class="edesc">Our signature trail run around the base of Mount Erciyes as the sun crests the horizon. A spiritual experience on legs.</p>
+      <div class="ebig">12K</div>
+    </div>
+    <div class="ecard">
+      <div class="edate">Sunday — 01 Jun · 07:30</div>
+      <div class="ename">Kayseri City Loop</div>
+      <div class="emeta"><span style="display:flex;align-items:center;gap:6px;"><span class="epip"></span>Meydan</span><span style="display:flex;align-items:center;gap:6px;"><span class="epip"></span>8 km · Road</span></div>
+      <div class="ebig">8K</div>
+    </div>
+    <div class="ecard">
+      <div class="edate">Saturday — 07 Jun · 08:30</div>
+      <div class="ename">Seyfe Gölü Ultra</div>
+      <div class="emeta"><span style="display:flex;align-items:center;gap:6px;"><span class="epip"></span>Seyfe, Kırşehir</span><span style="display:flex;align-items:center;gap:6px;"><span class="epip"></span>21 km</span></div>
+      <div class="ebig">21K</div>
+    </div>
+    <div class="ecard">
+      <div class="edate">Saturday — 14 Jun · 09:00</div>
+      <div class="ename">New Members Run</div>
+      <div class="emeta"><span style="display:flex;align-items:center;gap:6px;"><span class="epip"></span>Kocasinan Parkı</span><span style="display:flex;align-items:center;gap:6px;"><span class="epip"></span>5 km</span></div>
+      <div class="etag" style="background:var(--surface);color:var(--mid-gray);border-color:var(--border);">Beginner Friendly</div>
+      <div class="ebig">5K</div>
+    </div>
+  </div>
+</section>
+
+<!-- MERCH -->
+<section class="merch" id="merch">
+  <div class="mhdr">
+    <div>
+      <div class="eb rev"><span class="ebn">03</span> Official Merch</div>
+      <h2 class="sh rev">Gear Up.<br>Rep the Run.</h2>
+    </div>
+    <a href="#join" class="alink">Full Collection →</a>
+  </div>
+  <div class="mgrid rev">
+
+    <!-- Tee -->
+    <div class="mcard">
+      <div class="mimg" style="background:#F2EFEB;">
+        <span class="mbnew">New Drop</span>
+        <div class="mlayer">
+          <svg viewBox="0 0 160 185" width="130">
+            <path d="M30,32 L8,62 L34,70 L34,154 L126,154 L126,70 L152,62 L130,32 C120,45 108,50 80,50 C52,50 40,45 30,32Z" fill="#D91F06"/>
+            <path d="M30,32 L8,62 L34,70 L34,80 L8,72 Z" fill="#B8160A" opacity=".5"/>
+            <path d="M130,32 L152,62 L126,70 L126,80 L152,72 Z" fill="#B8160A" opacity=".5"/>
+            <text x="80" y="108" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="20" fill="white" letter-spacing="3">KSR</text>
+            <text x="80" y="126" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="9" fill="rgba(255,255,255,.55)" letter-spacing="4">KAYSERI</text>
+            <line x1="52" y1="136" x2="108" y2="136" stroke="rgba(255,255,255,.15)" stroke-width="0.5"/>
+          </svg>
+        </div>
+      </div>
+      <div class="minfo">
+        <div class="mcat">Apparel</div>
+        <div class="mname">Club Tee — SS25</div>
+        <div class="mrow"><span class="mprice">₺650</span><span class="msizes">XS — 2XL</span></div>
+      </div>
+    </div>
+
+    <!-- Hoodie -->
+    <div class="mcard">
+      <div class="mimg" style="background:#EAEAEA;">
+        <div class="mlayer">
+          <svg viewBox="0 0 160 195" width="130">
+            <path d="M18,42 L0,84 L32,94 L32,162 L128,162 L128,94 L160,84 L142,42 C132,54 118,62 104,66 L100,74 L60,74 L56,66 C42,62 28,54 18,42Z" fill="#1A1410"/>
+            <rect x="70" y="74" width="20" height="24" rx="2" fill="#111"/>
+            <rect x="32" y="94" width="8" height="68" fill="rgba(255,255,255,.03)"/>
+            <text x="80" y="122" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="13" fill="rgba(255,255,255,.7)" letter-spacing="2">SOCIAL</text>
+            <text x="80" y="138" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="13" fill="rgba(255,255,255,.7)" letter-spacing="2">RUN</text>
+            <rect x="68" y="142" width="24" height="2" rx="1" fill="#D91F06" opacity=".6"/>
+          </svg>
+        </div>
+      </div>
+      <div class="minfo">
+        <div class="mcat">Apparel</div>
+        <div class="mname">Runners Hoodie</div>
+        <div class="mrow"><span class="mprice">₺1,200</span><span class="msizes">S — XL</span></div>
+      </div>
+    </div>
+
+    <!-- Cap -->
+    <div class="mcard">
+      <div class="mimg" style="background:#F9F5F0;">
+        <span class="mbnew">Limited</span>
+        <div class="mlayer">
+          <svg viewBox="0 0 160 145" width="130">
+            <ellipse cx="80" cy="100" rx="74" ry="15" fill="#B8160A"/>
+            <path d="M18,100 C18,52 142,52 142,100 Z" fill="#D91F06"/>
+            <path d="M18,100 C18,52 80,46 80,46 C80,46 142,52 142,100" fill="#B8160A" opacity=".6"/>
+            <circle cx="80" cy="47" r="5" fill="#8A0E04"/>
+            <line x1="80" y1="47" x2="80" y2="62" stroke="#8A0E04" stroke-width="1.5"/>
+            <text x="80" y="88" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="16" fill="white" letter-spacing="2">KSR</text>
+          </svg>
+        </div>
+      </div>
+      <div class="minfo">
+        <div class="mcat">Accessories</div>
+        <div class="mname">Erciyes Cap</div>
+        <div class="mrow"><span class="mprice">₺480</span><span class="msizes">One Size</span></div>
+      </div>
+    </div>
+
+    <!-- Shorts -->
+    <div class="mcard">
+      <div class="mimg" style="background:#F0EEF5;">
+        <span class="mbsold">Sold Out</span>
+        <div class="mlayer" style="opacity:.4;">
+          <svg viewBox="0 0 160 185" width="120">
+            <rect x="20" y="18" width="120" height="24" rx="4" fill="#D91F06"/>
+            <path d="M20,42 L20,132 C20,144 36,152 56,152 L80,152 L80,42 Z" fill="#D91F06"/>
+            <path d="M80,42 L80,152 L104,152 C124,152 140,144 140,132 L140,42 Z" fill="#B8160A"/>
+            <line x1="80" y1="42" x2="80" y2="152" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
+            <text x="50" y="104" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="11" fill="rgba(255,255,255,.6)" letter-spacing="1">KSR</text>
+          </svg>
+        </div>
+      </div>
+      <div class="minfo">
+        <div class="mcat">Performance</div>
+        <div class="mname">Race Shorts</div>
+        <div class="mrow">
+          <span class="mprice" style="color:var(--light-gray);text-decoration:line-through;">₺550</span>
+          <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--red);letter-spacing:.08em;text-transform:uppercase;">Restocking Soon</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mctarow rev">
+    <p class="mannounce">Merch drops are announced exclusively on Instagram. Follow us to never miss a release — collections sell out fast.</p>
+    <a href="https://www.instagram.com/kayserisocialrun/" target="_blank" class="btnred">Shop the Drop →</a>
+  </div>
+</section>
+
+<!-- COMMUNITY -->
+<section class="comm" id="community">
+  <div class="commhdr">
+    <div class="eb rev" style="justify-content:center;color:var(--red);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+      <span class="ebn">04</span> The Crew
+    </div>
+    <h2 class="sh rev" style="color:var(--white);text-align:center;">300 Runners.<br>One Heartbeat.</h2>
+  </div>
+  <div class="cgrid rev">
+    <div class="cc cc1"><div class="cci"><span style="font-family:'Bebas Neue',sans-serif;font-size:64px;color:rgba(255,255,255,.05);letter-spacing:-.02em;">KSR</span><span class="cctl">KAYSERI</span></div></div>
+    <div class="cc cc2"><div class="cci"><svg viewBox="0 0 80 90" width="52" style="opacity:.12"><circle cx="40" cy="18" r="13" fill="white"/><line x1="40" y1="31" x2="38" y2="66" stroke="white" stroke-width="7" stroke-linecap="round"/><line x1="39" y1="47" x2="18" y2="60" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="39" y1="47" x2="60" y2="56" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="38" y1="66" x2="22" y2="88" stroke="white" stroke-width="7" stroke-linecap="round"/><line x1="38" y1="66" x2="56" y2="85" stroke="white" stroke-width="7" stroke-linecap="round"/></svg></div></div>
+    <div class="cc cc3"><div class="cci" style="flex-direction:row;gap:5px;padding:20px;"><div style="width:3px;background:rgba(217,31,6,.3);border-radius:2px;height:55%;"></div><div style="width:3px;background:rgba(217,31,6,.5);border-radius:2px;height:75%;"></div><div style="width:3px;background:rgba(217,31,6,.8);border-radius:2px;height:100%;"></div><div style="width:3px;background:rgba(217,31,6,.5);border-radius:2px;height:65%;"></div><div style="width:3px;background:rgba(217,31,6,.25);border-radius:2px;height:45%;"></div></div></div>
+    <div class="cc cc4"><div class="cci"><svg viewBox="0 0 100 60" width="72" style="opacity:.1"><polygon points="0,60 28,10 48,28 62,2 82,18 100,7 100,60" fill="white"/></svg></div></div>
+    <div class="cc cc5"><div class="cci"><span style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:rgba(217,31,6,.2);letter-spacing:.06em;text-align:center;line-height:1.1;">RUN<br>FREE</span></div></div>
+    <div class="cc cc6"><div class="cci"><div style="width:44px;height:44px;border:2px solid rgba(217,31,6,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;"><div style="width:18px;height:18px;background:rgba(217,31,6,.2);border-radius:50%;"></div></div></div></div>
+    <div class="cc cc7"><div class="cci" style="padding:16px;text-align:center;"><span style="font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.2em;color:rgba(217,31,6,.35);display:block;margin-bottom:4px;">FOLLOW</span><span style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.08em;color:rgba(255,255,255,.07);">@KAYSERISOCIALRUN</span></div></div>
+  </div>
+  <div class="commcta">
+    <p class="commctatxt">Follow our journey on Instagram for weekly run recaps, trail photography and community drops from Kayseri.</p>
+    <a href="https://www.instagram.com/kayserisocialrun/" target="_blank" class="btnghost">@kayserisocialrun ↗</a>
+  </div>
+</section>
+
+<!-- FOUNDERS -->
+<section class="found" id="team">
+  <div class="foundhdr">
+    <div>
+      <div class="eb rev"><span class="ebn">05</span> The Team</div>
+      <h2 class="sh rev" style="font-size:clamp(48px,6vw,68px);">The Crew<br>Behind the<br>Crew.</h2>
+    </div>
+    <p style="max-width:280px;font-size:13px;line-height:1.75;color:var(--mid-gray);font-weight:300;">A group of young runners from Kayseri who decided the city needed something different. So they built it.</p>
+  </div>
+  <div class="fgrid">
+
+    <div class="fcard rev">
+      <div class="favatar">AK</div>
+      <div><div class="fname">Ahmet<br>Koçak</div><div class="frole">Co-Founder &amp; Head of Routes</div></div>
+      <p class="fbio">The vision behind KSR. Ahmet mapped our first 12km loop through the city and hasn't stopped planning routes since. Erciyes trail specialist and ultra-marathon finisher.</p>
+      <div class="fsince">Member since Day 1 — 2022</div>
+      <div class="fnum">01</div>
+    </div>
+
+    <div class="fcard rev" style="transition-delay:.1s">
+      <div class="favatar">SY</div>
+      <div><div class="fname">Selin<br>Yıldız</div><div class="frole">Co-Founder &amp; Community Lead</div></div>
+      <p class="fbio">The heartbeat of the community. Selin manages every new runner's first contact, onboarding and the glue that keeps 300 people showing up every single week.</p>
+      <div class="fsince">Member since Day 1 — 2022</div>
+      <div class="fnum">02</div>
+    </div>
+
+    <div class="fcard rev" style="transition-delay:.2s">
+      <div class="favatar">MÖ</div>
+      <div><div class="fname">Mert<br>Özdemir</div><div class="frole">Creative Director &amp; Photography</div></div>
+      <p class="fbio">The eye of KSR. Every photo you've seen of our runs — that's Mert, camera in one hand, water bottle in the other, still outpacing everyone on the trail.</p>
+      <div class="fsince">Member since 2022</div>
+      <div class="fnum">03</div>
+    </div>
+
+    <div class="fcard rev" style="transition-delay:.08s">
+      <div class="favatar">EÇ</div>
+      <div><div class="fname">Ece<br>Çelik</div><div class="frole">Events &amp; Partnerships</div></div>
+      <p class="fbio">Ece turns ideas into calendars. She's behind every collab, every pop-up run, and the reason our merch actually reaches your door on time — and looks good doing it.</p>
+      <div class="fsince">Joined 2023</div>
+      <div class="fnum">04</div>
+    </div>
+
+    <div class="fcard rev" style="transition-delay:.18s">
+      <div class="favatar">BK</div>
+      <div><div class="fname">Berk<br>Kaya</div><div class="frole">Trail &amp; Safety Captain</div></div>
+      <p class="fbio">If you've ever run a trail with KSR and made it back safely, thank Berk. Certified trail leader, former mountain rescue volunteer, runs 80km/week minimum.</p>
+      <div class="fsince">Joined 2023</div>
+      <div class="fnum">05</div>
+    </div>
+
+    <!-- CTA card -->
+    <div class="fcard rev" style="transition-delay:.28s;background:var(--red);border-color:var(--red);">
+      <div class="favatar" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);color:white;">?</div>
+      <div>
+        <div class="fname" style="color:var(--white);">That Could<br>Be You.</div>
+        <div class="frole" style="color:rgba(255,255,255,.6);">Community Organizer</div>
+      </div>
+      <p class="fbio" style="color:rgba(255,255,255,.65);">We're always looking for people who want to give back, lead runs, and help shape what KSR becomes next. Join us and leave your mark on Kayseri.</p>
+      <a href="#join" class="btnghost" style="width:fit-content;margin-top:auto;">Get Involved →</a>
+      <div class="fnum" style="color:rgba(255,255,255,.05);">∞</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- JOIN -->
+<section class="join" id="join">
+  <div><h2 class="joinh">Ready to<br>Run With<br>Us?</h2></div>
+  <div>
+    <p class="joinbody">Leave your contact and we'll send you everything you need for your first run — location, time, and what to wear. Zero pressure. Every pace welcome.</p>
+    <div class="joinform">
+      <input type="email" class="joinin" placeholder="your@email.com">
+      <button class="joinbtn">Join Now →</button>
+    </div>
+    <div class="joinperks">
+      <span class="perk">Weekly run alerts</span>
+      <span class="perk">Free community access</span>
+      <span class="perk">All levels welcome</span>
+      <span class="perk">Early merch access</span>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="ftop">
+    <div>
+      <div class="flogo">KSR</div>
+      <p class="fdesc">Kayseri Social Run — a youth-led running community in the heart of Anatolia. Lacing up every weekend since 2022.</p>
+      <div class="fsocs">
+        <a href="https://www.instagram.com/kayserisocialrun/" target="_blank" class="fsoc">IG</a>
+        <a href="#" class="fsoc">ST</a>
+        <a href="#" class="fsoc">WA</a>
+      </div>
+    </div>
+    <div>
+      <div class="fct">Runs</div>
+      <div class="flinks">
+        <a href="#">Saturday Morning Run</a>
+        <a href="#">Trail Series</a>
+        <a href="#">Beginner Sessions</a>
+        <a href="#">Special Events</a>
+      </div>
+    </div>
+    <div>
+      <div class="fct">Community</div>
+      <div class="flinks">
+        <a href="#join">Join the Club</a>
+        <a href="#about">Our Story</a>
+        <a href="#team">The Team</a>
+        <a href="#merch">Merch</a>
+      </div>
+    </div>
+    <div>
+      <div class="fct">Connect</div>
+      <div class="flinks">
+        <a href="https://www.instagram.com/kayserisocialrun/" target="_blank">Instagram</a>
+        <a href="#">Strava Club</a>
+        <a href="#">Contact</a>
+        <a href="#">Press Kit</a>
+      </div>
+    </div>
+  </div>
+  <div class="fbot">
+    <div class="fcopy">© 2025 Kayseri Social Run. All rights reserved.</div>
+    <div class="floc">Kayseri, Türkiye — 38.000°N 35.321°E</div>
+  </div>
+</footer>
+
+<script>
+const cur=document.getElementById('cur'), cr=document.getElementById('cr');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; cur.style.left=mx+'px'; cur.style.top=my+'px'; });
+(function a(){ rx+=(mx-rx)*.12; ry+=(my-ry)*.12; cr.style.left=rx+'px'; cr.style.top=ry+'px'; requestAnimationFrame(a); })();
+document.querySelectorAll('a,button,.vrow,.ecard,.mcard,.cc,.fcard').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ cur.style.width='18px'; cur.style.height='18px'; cr.style.width='52px'; cr.style.height='52px'; });
+  el.addEventListener('mouseleave',()=>{ cur.style.width='10px'; cur.style.height='10px'; cr.style.width='36px'; cr.style.height='36px'; });
+});
+
+const pb=document.getElementById('pb');
+window.addEventListener('scroll',()=>{ pb.style.width=(window.scrollY/(document.body.scrollHeight-window.innerHeight)*100)+'%'; });
+
+const obs=new IntersectionObserver(e=>{ e.forEach(x=>{ if(x.isIntersecting){ x.target.classList.add('in'); obs.unobserve(x.target); } }); },{threshold:.1});
+document.querySelectorAll('.rev,.revl,.revr').forEach(el=>obs.observe(el));
+
+function runCtr(el,t,d=1800){ const t0=performance.now(),big=t>=1000; (function f(now){ const p=Math.min((now-t0)/d,1),v=Math.round((1-Math.pow(1-p,3))*t); el.textContent=big?v.toLocaleString():v; if(p<1)requestAnimationFrame(f); })(t0); }
+const co=new IntersectionObserver(e=>{ e.forEach(x=>{ if(x.isIntersecting){ runCtr(x.target,parseInt(x.target.dataset.target)); co.unobserve(x.target); } }); },{threshold:.5});
+document.querySelectorAll('.counter').forEach(el=>co.observe(el));
+
+const mt=document.getElementById('mt'); mt.innerHTML+=mt.innerHTML;
+</script>
+</body>
+</html>

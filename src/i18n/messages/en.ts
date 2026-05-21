@@ -1,10 +1,19 @@
+import { adminEventFormEn, type AdminEventFormCopy } from "./admin-event-form";
+import { eventStatsEn, type EventStatsCopy } from "./event-stats";
+import { ideaBoxEn, type IdeaBoxCopy } from "./idea-box";
+import { systemAdminEn, type SystemAdminCopy } from "./system-admin";
+import { landingPageEn } from "./landing-page";
+
 export const en = {
   nav: {
     home: "Home",
     login: "Login",
     register: "Register",
     dashboard: "Dashboard",
+    ksrSite: "KSR",
     events: "Events",
+    ideaBox: "Idea Box",
+    unreadIdeasBadge: "{count} unread ideas",
     systemSettings: "System settings",
     signOut: "Sign out",
     signOutConfirm: "Sure?",
@@ -17,6 +26,9 @@ export const en = {
     editSiteNav: "Site",
     adminSection: "Administration",
     profileSettings: "Profile settings",
+    menu: "Menu",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
   },
   locale: {
     switchToEnglish: "English",
@@ -30,6 +42,11 @@ export const en = {
   home: {
     titleAlt: "Kayseri Social Run",
   },
+  landing: landingPageEn,
+  adminEventForm: adminEventFormEn,
+  eventStats: eventStatsEn,
+  ideaBox: ideaBoxEn,
+  systemAdmin: systemAdminEn,
   aboutEditor: {
     title: "Kayseri Social Run",
     blurb:
@@ -201,6 +218,13 @@ export const en = {
       "Check your inbox for a verification link. You must verify your email before you can sign in.",
     afterVerifyAdmin: "After verification, your admin access will turn on automatically.",
     errorGeneric: "Could not create account",
+    alreadyEmailedTitle: "Registration email already sent",
+    alreadyEmailedBody:
+      "You already received an email to complete registration for this address. Open your inbox (and spam folder) and use the verification link in that message.",
+    alreadyEmailedDismiss: "OK",
+    alreadyAccountTitle: "Account already exists",
+    alreadyAccountBody:
+      "This email is already registered and verified. Sign in with your password instead of creating a new account.",
     femaleLabel: "Female",
     maleLabel: "Male",
   },
@@ -230,14 +254,30 @@ export const en = {
     km: "km",
     cost: "Cost",
     costFree: "Free to join",
-    signUp: "Sign up",
+    signUp: "Register",
+    eventFinished: "Event finished",
+    eventFinishedBlurb: "This activity has ended. Sign-ups are no longer available.",
+    eventOngoing: "Happening now",
+    eventOngoingBlurb: "This activity is in progress. Sign-ups are closed.",
+    eventStatusOpen: "Come and join us",
+    eventStatusJoined: "Joining",
+    eventStatusWaitlistedBadge: "On waitlist",
+    eventStatusPendingBadge: "Pending approval",
     signedUp: "You are signed up for this activity.",
     cancelSignup: "Cancel signup",
+    cancelSignupConfirm:
+      "Are you sure you want to cancel your registration for this activity?",
+    leaveWaitlistConfirm: "Are you sure you want to leave the waitlist?",
+    cancelPendingConfirm:
+      "Are you sure you want to withdraw your pending registration?",
+    confirmCancelYes: "Yes, cancel",
+    keepRegistration: "Keep my registration",
     updating: "Updating…",
     waitlistBlurb:
       "You are on the waitlist. If someone cancels, you may be moved up automatically.",
     leaveWaitlist: "Leave waitlist",
-    signMeUp: "Sign me up",
+    signMeUp: "Register",
+    alreadyHaveAccount: "Already have an account?",
     saving: "Saving…",
     pendingBlurb:
       "Your registration is pending coordinator approval. You will be notified when it is reviewed.",
@@ -258,10 +298,16 @@ export const en = {
     startedClose: "This activity has already started — sign-ups are closed.",
     signedUpCount: "{count} signed up",
     signedUpCountMax: "{going} / {max} signed up",
+    backToEvents: "← Back to events",
     footerDashboard: "Dashboard",
     footerHome: "Home",
-    editCoverImage: "Change cover image",
-    addCoverImage: "Add cover image",
+    editCoverImage: "Change image",
+    editActivity: "Edit activity",
+    viewStatistics: "View statistics",
+    viewEventDetails: "View event details",
+    eventDetailsHeading: "Activity details",
+    signUpSectionHeading: "Registration",
+    addCoverImage: "Upload image",
     coverUploadFailed: "Could not upload image.",
   },
   rsvpActions: {
@@ -287,4 +333,12 @@ export const en = {
   },
 };
 
-export type Messages = typeof en;
+export type Messages = Omit<
+  typeof en,
+  "adminEventForm" | "eventStats" | "ideaBox" | "systemAdmin"
+> & {
+  adminEventForm: AdminEventFormCopy;
+  eventStats: EventStatsCopy;
+  ideaBox: IdeaBoxCopy;
+  systemAdmin: SystemAdminCopy;
+};

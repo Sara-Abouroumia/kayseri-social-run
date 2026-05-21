@@ -1,25 +1,35 @@
 import {
   getGoingCount,
   getGoingGenderBreakdown,
-  getGoingSignupsByDay,
+  // getGoingSignupsByDay,
   listGoingParticipantsForAdmin,
   listPendingParticipantsForAdmin,
   listWaitlistedParticipantsForAdmin,
 } from "@/lib/event-participation";
+import type { Locale } from "@/i18n/config";
+import type { EventStatsCopy } from "@/i18n/messages/event-stats";
+import { cn } from "@/lib/utils";
 
 import { PendingParticipantsPanel } from "./pending-participants-panel";
+import { RegistrationAnswerInsights } from "./registration-answer-insights";
 
 type Props = {
   eventId: string;
+  className?: string;
+  /** `card` = bordered panel (admin edit). `plain` = flows with the public event page. */
+  variant?: "card" | "plain";
+  copy: EventStatsCopy;
+  locale: Locale;
 };
 
 function GenderBars(props: {
   breakdown: Awaited<ReturnType<typeof getGoingGenderBreakdown>>;
+  copy: EventStatsCopy;
 }) {
-  const { breakdown } = props;
+  const { breakdown, copy } = props;
   const entries = [
-    { label: "Female", value: breakdown.female, color: "bg-rose-500" },
-    { label: "Male", value: breakdown.male, color: "bg-sky-600" },
+    { label: copy.genderBarFemale, value: breakdown.female, color: "bg-pink-500" },
+    { label: copy.genderBarMale, value: breakdown.male, color: "bg-blue-600" },
   ];
   const max = Math.max(1, ...entries.map((e) => e.value));
 
@@ -43,66 +53,49 @@ function GenderBars(props: {
   );
 }
 
-function CumulativeChart(props: { points: Awaited<ReturnType<typeof getGoingSignupsByDay>> }) {
-  const { points } = props;
-  if (points.length === 0) {
-    return <p className="mt-2 text-sm text-zinc-500">No sign-ups yet.</p>;
-  }
-  const maxY = Math.max(1, ...points.map((p) => p.count));
-  const h = 120;
-
-  return (
-    <div className="mt-4">
-      <svg
-        viewBox={`0 0 ${Math.max(240, points.length * 36)} ${h + 24}`}
-        className="w-full text-zinc-900"
-        role="img"
-        aria-label="Cumulative sign-ups over time"
-      >
-        <polyline
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-zinc-900"
-          points={points
-            .map((p, i) => {
-              const x = 8 + i * 36;
-              const y = h - 4 - ((h - 8) * p.count) / maxY;
-              return `${x},${y}`;
-            })
-            .join(" ")}
-        />
-        {points.map((p, i) => {
-          const x = 8 + i * 36;
-          const y = h - 4 - ((h - 8) * p.count) / maxY;
-          return <circle key={p.day} cx={x} cy={y} r="3" className="fill-zinc-900" />;
-        })}
-        {points.map((p, i) => {
-          const x = 8 + i * 36;
-          return (
-            <text
-              key={`${p.day}-label`}
-              x={x}
-              y={h + 14}
-              textAnchor="middle"
-              className="fill-zinc-500 text-[9px]"
-            >
-              {p.day.slice(5)}
-            </text>
-          );
-        })}
-      </svg>
-    </div>
-  );
+/* Cumulative sign-ups chart — disabled for now
+function formatDayLabel(isoDay: string, locale: Locale) {
+  const d = new Date(`${isoDay}T12:00:00Z`);
+  return new Intl.DateTimeFormat(locale === "tr" ? "tr-TR" : "en-GB", {
+    month: "numeric",
+    day: "numeric",
+  }).format(d);
 }
 
-export async function EventParticipationInsights({ eventId }: Props) {
-  const [goingCount, waitlisted, pending, breakdown, timeline, goingRows] = await Promise.all([
+function CumulativeScatterChart(props: {
+  points: Awaited<ReturnType<typeof getGoingSignupsByDay>>;
+  copy: EventStatsCopy;
+  locale: Locale;
+}) {
+  ...
+}
+*/
+
+function genderLabel(copy: EventStatsCopy, gender: string) {
+  if (gender === "female") return copy.genderBarFemale;
+  if (gender === "male") return copy.genderBarMale;
+  return gender.replace(/_/g, " ");
+}
+
+export async function EventParticipationInsights({
+  eventId,
+  className,
+  variant = "card",
+  copy,
+  locale,
+}: Props) {
+  const sectionClass = cn(
+    variant === "card" && (className ?? "mt-0"),
+    variant === "card" && "rounded-lg border border-zinc-200 bg-white p-5 shadow-sm sm:p-6",
+    variant === "plain" && (className ?? "mt-6"),
+    variant === "plain" && "space-y-8",
+  );
+  const [goingCount, waitlisted, pending, breakdown, goingRows] = await Promise.all([
     getGoingCount(eventId),
     listWaitlistedParticipantsForAdmin(eventId),
     listPendingParticipantsForAdmin(eventId),
     getGoingGenderBreakdown(eventId),
-    getGoingSignupsByDay(eventId),
+    // getGoingSignupsByDay(eventId),
     listGoingParticipantsForAdmin(eventId),
   ]);
 
@@ -113,17 +106,13 @@ export async function EventParticipationInsights({ eventId }: Props) {
   const malePct = fmDenom ? Math.round((100 * m) / fmDenom) : null;
 
   return (
-    <section
-      className="mt-10 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm"
-      aria-labelledby="insights-heading"
-    >
-      <h2 id="insights-heading" className="text-lg font-medium text-zinc-900">
-        Sign-ups &amp; insights
-      </h2>
-      <p className="mt-2 text-sm text-zinc-600">
-        Going and waitlisted participants for this activity, plus self-reported gender
-        breakdown among people who signed up.
-      </p>
+    <section className={sectionClass} aria-labelledby="insights-heading">
+      <div className={variant === "plain" ? "sr-only" : undefined}>
+        <h2 id="insights-heading" className="text-lg font-medium text-zinc-900">
+          {copy.heading}
+        </h2>
+        <p className="mt-2 text-sm text-zinc-600">{copy.intro}</p>
+      </div>
 
       <PendingParticipantsPanel
         eventId={eventId}
@@ -132,24 +121,27 @@ export async function EventParticipationInsights({ eventId }: Props) {
           name: r.name,
           email: r.email,
         }))}
+        copy={copy}
       />
 
       <dl className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded-md border border-zinc-100 bg-zinc-50 p-4">
           <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Signed up (going)
+            {copy.signedUpGoing}
           </dt>
           <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{goingCount}</dd>
         </div>
         <div className="rounded-md border border-zinc-100 bg-zinc-50 p-4">
-          <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">Waitlist</dt>
+          <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+            {copy.waitlist}
+          </dt>
           <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">
             {waitlisted.length}
           </dd>
         </div>
         <div className="rounded-md border border-amber-100 bg-amber-50 p-4">
           <dt className="text-xs font-medium uppercase tracking-wide text-amber-800">
-            Pending
+            {copy.pending}
           </dt>
           <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">
             {pending.length}
@@ -158,38 +150,46 @@ export async function EventParticipationInsights({ eventId }: Props) {
       </dl>
 
       <div className="mt-8">
-        <h3 className="text-sm font-semibold text-zinc-900">Gender (going)</h3>
+        <h3 className="text-sm font-semibold text-zinc-900">{copy.genderHeading}</h3>
         {femalePct != null && malePct != null && fmDenom > 0 ? (
           <p className="mt-1 text-sm text-zinc-600">
-            <span className="font-medium text-zinc-900">{femalePct}% female</span> ·{" "}
-            <span className="font-medium text-zinc-900">{malePct}% male</span>
-            <span className="text-zinc-500"> (among signed-up participants)</span>
+            <span className="font-medium text-zinc-900">
+              {copy.genderSplit
+                .replace("{femalePct}", String(femalePct))
+                .replace("{malePct}", String(malePct))
+                .replace("{femaleLabel}", copy.femaleLabel)
+                .replace("{maleLabel}", copy.maleLabel)}
+            </span>
+            <span className="text-zinc-500"> {copy.genderSplitNote}</span>
           </p>
         ) : (
-          <p className="mt-1 text-sm text-zinc-500">
-            Not enough sign-ups yet to show a female/male split.
-          </p>
+          <p className="mt-1 text-sm text-zinc-500">{copy.genderSplitEmpty}</p>
         )}
-        <GenderBars breakdown={breakdown} />
+        <GenderBars breakdown={breakdown} copy={copy} />
       </div>
 
+      {/* Cumulative sign-ups — disabled for now
       <div className="mt-8">
-        <h3 className="text-sm font-semibold text-zinc-900">Cumulative sign-ups</h3>
-        <p className="mt-1 text-xs text-zinc-500">By calendar day (UTC) when each person joined.</p>
-        <CumulativeChart points={timeline} />
+        <h3 className="text-sm font-semibold text-zinc-900">{copy.cumulativeHeading}</h3>
+        <p className="mt-1 text-xs text-zinc-500">{copy.cumulativeHint}</p>
+        <CumulativeScatterChart points={timeline} copy={copy} locale={locale} />
       </div>
+      */}
 
       <div className="mt-8">
-        <h3 className="text-sm font-semibold text-zinc-900">Participant list (going)</h3>
+        <h3 className="text-sm font-semibold text-zinc-900">{copy.participantListHeading}</h3>
         {goingRows.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-500">No one has signed up yet.</p>
+          <p className="mt-2 text-sm text-zinc-500">{copy.participantListEmpty}</p>
         ) : (
           <ul className="mt-3 max-h-56 divide-y divide-zinc-100 overflow-y-auto rounded-md border border-zinc-200 text-sm">
             {goingRows.map((r) => (
-              <li key={r.userId} className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2">
+              <li
+                key={r.userId}
+                className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2"
+              >
                 <span className="font-medium text-zinc-900">{r.name}</span>
                 <span className="text-xs text-zinc-500">{r.email}</span>
-                <span className="text-xs text-zinc-500">{String(r.gender).replace(/_/g, " ")}</span>
+                <span className="text-xs text-zinc-500">{genderLabel(copy, String(r.gender))}</span>
               </li>
             ))}
           </ul>
@@ -198,7 +198,7 @@ export async function EventParticipationInsights({ eventId }: Props) {
 
       {waitlisted.length > 0 ? (
         <div className="mt-8">
-          <h3 className="text-sm font-semibold text-zinc-900">Waitlist (order)</h3>
+          <h3 className="text-sm font-semibold text-zinc-900">{copy.waitlistHeading}</h3>
           <ol className="mt-3 max-h-40 list-decimal divide-y divide-zinc-100 overflow-y-auto rounded-md border border-zinc-200 pl-8 pr-3 text-sm">
             {waitlisted.map((r) => (
               <li key={r.userId} className="py-2">
@@ -209,6 +209,8 @@ export async function EventParticipationInsights({ eventId }: Props) {
           </ol>
         </div>
       ) : null}
+
+      <RegistrationAnswerInsights eventId={eventId} copy={copy} locale={locale} />
     </section>
   );
 }

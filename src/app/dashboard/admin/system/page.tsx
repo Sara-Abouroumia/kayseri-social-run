@@ -5,14 +5,19 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { siteMainClass } from "@/lib/layout";
+import { isPlatformAdmin } from "@/lib/platform-admin";
 import {
-  isPlatformAdmin,
-  listPlatformAdmins,
-  parseBootstrapAdminEmails,
-} from "@/lib/platform-admin";
+  isPlatformDeveloper,
+  parseBootstrapDeveloperEmails,
+} from "@/lib/platform-developer";
+
+import { countUnreadCommunityIdeasForAdmin } from "@/app/dashboard/idea-box-actions";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getLocale } from "@/i18n/get-locale";
+import { listRegisteredUsersForAdmin } from "@/lib/registered-users";
 
 import { AddAdminForm } from "./add-admin-form";
-import { AdminList } from "./admin-list";
+import { RegisteredUsersPanel } from "./registered-users-panel";
 
 export const metadata: Metadata = {
   title: "System settings",
@@ -31,8 +36,18 @@ export default async function AdminSystemPage() {
     redirect("/dashboard");
   }
 
-  const admins = await listPlatformAdmins();
-  const bootstrap = parseBootstrapAdminEmails();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+  const ideaBox = dict.ideaBox;
+  const systemCopy = dict.systemAdmin;
+
+  const registeredUsers = await listRegisteredUsersForAdmin();
+  const isDeveloper = await isPlatformDeveloper(
+    session.user.id,
+    session.user.email,
+  );
+  const bootstrapDevelopers = parseBootstrapDeveloperEmails();
+  const unreadIdeas = await countUnreadCommunityIdeasForAdmin(session.user.id);
 
   return (
     <main className={siteMainClass}>
@@ -50,41 +65,70 @@ export default async function AdminSystemPage() {
         </p>
       </div>
 
-      <section
-        className="mb-10 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm"
-        aria-labelledby="events-heading"
-      >
-        <h2 id="events-heading" className="text-lg font-medium text-zinc-900">
-          Published activities
-        </h2>
-        <p className="mt-1 text-sm text-zinc-600">
-          Create shareable links (Instagram, WhatsApp) with cover images. Visitors
-          open the activity page; joining still requires an account on this site.
-        </p>
-        <div className="mt-4">
-          <Link
-            href="/dashboard/admin/events"
-            className="inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-          >
-            Manage events
-          </Link>
-        </div>
-      </section>
+      <div className="mb-10 flex flex-wrap items-stretch gap-6">
+        <section
+          className="min-w-[min(100%,17rem)] flex-1 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm"
+          aria-labelledby="events-heading"
+        >
+          <h2 id="events-heading" className="text-lg font-medium text-zinc-900">
+            Published activities
+          </h2>
+          <p className="mt-1 text-sm text-zinc-600">
+            Create shareable links (Instagram, WhatsApp) with cover images. Visitors
+            open the activity page; joining still requires an account on this site.
+          </p>
+          <div className="mt-4">
+            <Link
+              href="/dashboard/admin/events"
+              className="inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+            >
+              Manage events
+            </Link>
+          </div>
+        </section>
 
-      {bootstrap.length > 0 ? (
-        <p className="mb-8 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          <strong>Bootstrap admins</strong> are also set via{" "}
-          <code className="rounded bg-amber-100/80 px-1">PLATFORM_ADMIN_EMAILS</code>{" "}
-          in the environment. Those accounts are always admins; remove them only by
-          editing env, not from this list.
-        </p>
-      ) : (
-        <p className="mb-8 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
-          Optional: set{" "}
-          <code className="rounded bg-white px-1">PLATFORM_ADMIN_EMAILS</code>{" "}
-          (comma-separated) for break-glass admins that survive DB resets.
-        </p>
-      )}
+        <section
+          className="min-w-[min(100%,17rem)] flex-1 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm"
+          aria-labelledby="ideas-heading"
+        >
+          <h2 id="ideas-heading" className="text-lg font-medium text-zinc-900">
+            {ideaBox.systemIdeasHeading}
+          </h2>
+          <p className="mt-1 text-sm text-zinc-600">{ideaBox.systemIdeasBlurb}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Link
+              href="/dashboard/admin/ideas"
+              className="inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+            >
+              {ideaBox.openIdeaBox}
+            </Link>
+            {unreadIdeas > 0 ? (
+              <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+                {unreadIdeas}
+              </span>
+            ) : null}
+          </div>
+        </section>
+      </div>
+
+      {isDeveloper ? (
+        bootstrapDevelopers.length > 0 ? (
+          <p className="mb-8 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <strong>Bootstrap developers</strong> are set via{" "}
+            <code className="rounded bg-amber-100/80 px-1">
+              PLATFORM_DEVELOPER_EMAILS
+            </code>{" "}
+            in the environment. Those accounts are always admins; remove them only
+            by editing env, not from this list.
+          </p>
+        ) : (
+          <p className="mb-8 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+            Optional: set{" "}
+            <code className="rounded bg-white px-1">PLATFORM_DEVELOPER_EMAILS</code>{" "}
+            (comma-separated) for break-glass developers that survive DB resets.
+          </p>
+        )
+      ) : null}
 
       <section
         className="mb-10 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm"
@@ -104,17 +148,23 @@ export default async function AdminSystemPage() {
         </div>
       </section>
 
-      <section aria-labelledby="admins-heading">
-        <h2 id="admins-heading" className="text-lg font-medium text-zinc-900">
-          Platform admins
+      <section aria-labelledby="registered-users-heading">
+        <h2
+          id="registered-users-heading"
+          className="text-lg font-medium text-zinc-900"
+        >
+          {systemCopy.registeredUsersHeading}
         </h2>
         <p className="mt-1 text-sm text-zinc-600">
-          {admins.length === 0
-            ? "No admins found. Set PLATFORM_ADMIN_EMAILS or add one below."
-            : `${admins.length} admin${admins.length === 1 ? "" : "s"}.`}
+          {systemCopy.registeredUsersIntro}
         </p>
         <div className="mt-4">
-          <AdminList admins={admins} />
+          <RegisteredUsersPanel
+            users={registeredUsers}
+            copy={systemCopy}
+            locale={locale}
+            currentUserId={session.user.id}
+          />
         </div>
       </section>
 
@@ -126,3 +176,4 @@ export default async function AdminSystemPage() {
     </main>
   );
 }
+

@@ -26,7 +26,10 @@ export async function POST(request: Request) {
   const result = await uploadImageFile(file, "event-covers");
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    return NextResponse.json(
+      { error: result.error, code: result.code },
+      { status: result.status },
+    );
   }
 
   return NextResponse.json(result);

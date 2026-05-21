@@ -3,7 +3,14 @@
 import { useMemo, useState } from "react";
 
 import type { JoinApprovalConfig } from "@/db/schema/events";
-import type { RegistrationQuestionDraft } from "@/lib/event-registration";
+import type { Messages } from "@/i18n/messages/en";
+import {
+  defaultDependsOnValue,
+  normalizeRegistrationQuestions,
+  type RegistrationQuestionDraft,
+} from "@/lib/event-registration";
+
+type Copy = Messages["adminEventForm"];
 
 function inputClass() {
   return "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900";
@@ -16,6 +23,7 @@ function labelClass() {
 type ApprovalMode = "auto" | "manual" | "conditional";
 
 type Props = {
+  copy: Copy;
   initialQuestions: RegistrationQuestionDraft[];
   initialApprovalMode: ApprovalMode;
   initialApprovalConfig: JoinApprovalConfig | null;
@@ -33,43 +41,51 @@ function newQuestion(sortOrder: number): RegistrationQuestionDraft {
   };
 }
 
-const QUESTION_TYPES: { value: RegistrationQuestionDraft["questionType"]; label: string }[] =
-  [
-    { value: "checkbox", label: "Checkbox (yes / no toggle)" },
-    { value: "yes_no", label: "Yes / No" },
-    { value: "text", label: "Short text" },
-    { value: "number", label: "Number" },
-  ];
-
-const RULE_WHEN_OPTIONS: Record<
-  RegistrationQuestionDraft["questionType"],
-  { value: JoinApprovalConfig["rules"][0]["when"]; label: string }[]
-> = {
-  checkbox: [
-    { value: "checked", label: "Is checked" },
-    { value: "unchecked", label: "Is not checked" },
-  ],
-  yes_no: [
-    { value: "yes", label: "Answer is Yes" },
-    { value: "no", label: "Answer is No" },
-  ],
-  text: [
-    { value: "equals", label: "Equals" },
-    { value: "not_equals", label: "Does not equal" },
-  ],
-  number: [
-    { value: "equals", label: "Equals" },
-    { value: "not_equals", label: "Does not equal" },
-  ],
-};
-
 export function RegistrationFormBuilder({
+  copy,
   initialQuestions,
   initialApprovalMode,
   initialApprovalConfig,
 }: Props) {
-  const [questions, setQuestions] = useState<RegistrationQuestionDraft[]>(
-    initialQuestions.length > 0 ? initialQuestions : [],
+  const questionTypes = useMemo(
+    () =>
+      [
+        { value: "checkbox" as const, label: copy.questionTypeCheckbox },
+        { value: "yes_no" as const, label: copy.questionTypeYesNo },
+        { value: "text" as const, label: copy.questionTypeText },
+        { value: "number" as const, label: copy.questionTypeNumber },
+      ],
+    [copy],
+  );
+
+  const ruleWhenOptions = useMemo(
+    (): Record<
+      RegistrationQuestionDraft["questionType"],
+      { value: JoinApprovalConfig["rules"][0]["when"]; label: string }[]
+    > => ({
+      checkbox: [
+        { value: "checked", label: copy.ruleWhenChecked },
+        { value: "unchecked", label: copy.ruleWhenUnchecked },
+      ],
+      yes_no: [
+        { value: "yes", label: copy.ruleWhenYes },
+        { value: "no", label: copy.ruleWhenNo },
+      ],
+      text: [
+        { value: "equals", label: copy.ruleWhenEquals },
+        { value: "not_equals", label: copy.ruleWhenNotEquals },
+      ],
+      number: [
+        { value: "equals", label: copy.ruleWhenEquals },
+        { value: "not_equals", label: copy.ruleWhenNotEquals },
+      ],
+    }),
+    [copy],
+  );
+  const [questions, setQuestions] = useState<RegistrationQuestionDraft[]>(() =>
+    initialQuestions.length > 0
+      ? normalizeRegistrationQuestions(initialQuestions)
+      : [],
   );
   const [approvalMode, setApprovalMode] = useState<ApprovalMode>(initialApprovalMode);
   const [approvalConfig, setApprovalConfig] = useState<JoinApprovalConfig>(
@@ -101,9 +117,37 @@ export function RegistrationFormBuilder({
   );
 
   function updateQuestion(id: string, patch: Partial<RegistrationQuestionDraft>) {
-    setQuestions((prev) =>
-      prev.map((q) => (q.id === id ? { ...q, ...patch } : q)),
-    );
+    setQuestions((prev) => {
+      let next = prev.map((q) => (q.id === id ? { ...q, ...patch } : q));
+      if (patch.questionType) {
+        next = next.map((q) => {
+          if (q.dependsOnQuestionId !== id) return q;
+          const parent = next.find((p) => p.id === id);
+          if (!parent) return q;
+          return {
+            ...q,
+            dependsOnValue: defaultDependsOnValue(parent),
+          };
+        });
+      }
+      return normalizeRegistrationQuestions(next);
+    });
+  }
+
+  function setDependsOnParent(questionId: string, parentId: string | null) {
+    if (!parentId) {
+      updateQuestion(questionId, {
+        dependsOnQuestionId: null,
+        dependsOnValue: null,
+      });
+      return;
+    }
+    const parent = questions.find((p) => p.id === parentId);
+    if (!parent) return;
+    updateQuestion(questionId, {
+      dependsOnQuestionId: parentId,
+      dependsOnValue: defaultDependsOnValue(parent),
+    });
   }
 
   function removeQuestion(id: string) {
@@ -163,12 +207,9 @@ export function RegistrationFormBuilder({
     <section className="space-y-6" aria-labelledby="registration-heading">
       <div>
         <h2 id="registration-heading" className="text-lg font-medium text-zinc-900">
-          Registration form
+          {copy.registrationHeading}
         </h2>
-        <p className="mt-1 text-sm text-zinc-600">
-          Add questions participants answer when joining — like a short Google Form.
-          You can show follow-up questions only when another answer is checked.
-        </p>
+        <p className="mt-1 text-sm text-zinc-600">{copy.registrationBlurb}</p>
       </div>
 
       <input type="hidden" name="registrationQuestionsJson" value={questionsJson} />
@@ -178,13 +219,14 @@ export function RegistrationFormBuilder({
       <div className="space-y-4">
         {questions.length === 0 ? (
           <p className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-600">
-            No registration questions yet. Add one to collect info (e.g. &quot;Coming with a
-            car?&quot;) or leave empty for a simple sign-up button.
+            {copy.noQuestionsYet}
           </p>
         ) : null}
 
         {questions.map((q, index) => {
-          const parents = parentCandidates.filter((p) => p.id !== q.id);
+          const parents = parentCandidates.filter(
+            (p) => p.id !== q.id && p.sortOrder < q.sortOrder,
+          );
           const showDepends = parents.length > 0;
 
           return (
@@ -194,7 +236,7 @@ export function RegistrationFormBuilder({
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Question {index + 1}
+                  {copy.questionN.replace("{n}", String(index + 1))}
                 </span>
                 <div className="flex gap-1">
                   <button
@@ -218,24 +260,24 @@ export function RegistrationFormBuilder({
                     onClick={() => removeQuestion(q.id)}
                     className="rounded border border-red-200 px-2 py-0.5 text-xs text-red-800 hover:bg-red-50"
                   >
-                    Remove
+                    {copy.remove}
                   </button>
                 </div>
               </div>
 
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className={labelClass()}>Question label</label>
+                  <label className={labelClass()}>{copy.questionLabel}</label>
                   <input
                     value={q.label}
                     onChange={(e) => updateQuestion(q.id, { label: e.target.value })}
-                    placeholder='e.g. "Are you coming with your own car?"'
+                    placeholder={copy.questionLabelPlaceholder}
                     className={`${inputClass()} mt-1`}
                     maxLength={500}
                   />
                 </div>
                 <div>
-                  <label className={labelClass()}>Answer type</label>
+                  <label className={labelClass()}>{copy.answerType}</label>
                   <select
                     value={q.questionType}
                     onChange={(e) =>
@@ -248,7 +290,7 @@ export function RegistrationFormBuilder({
                     }
                     className={`${inputClass()} mt-1`}
                   >
-                    {QUESTION_TYPES.map((t) => (
+                    {questionTypes.map((t) => (
                       <option key={t.value} value={t.value}>
                         {t.label}
                       </option>
@@ -263,30 +305,27 @@ export function RegistrationFormBuilder({
                       onChange={(e) => updateQuestion(q.id, { required: e.target.checked })}
                       className="rounded border-zinc-300"
                     />
-                    Required
+                    {copy.required}
                   </label>
                 </div>
               </div>
 
               {showDepends ? (
                 <div className="mt-4 rounded-md border border-zinc-100 bg-zinc-50 p-3">
-                  <p className="text-xs font-medium text-zinc-700">Show this question only when</p>
+                  <p className="text-xs font-medium text-zinc-700">{copy.showOnlyWhen}</p>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     <select
                       value={q.dependsOnQuestionId ?? ""}
                       onChange={(e) => {
                         const v = e.target.value;
-                        updateQuestion(q.id, {
-                          dependsOnQuestionId: v === "" ? null : v,
-                          dependsOnValue: v === "" ? null : "true",
-                        });
+                        setDependsOnParent(q.id, v === "" ? null : v);
                       }}
                       className={inputClass()}
                     >
-                      <option value="">Always show</option>
+                      <option value="">{copy.alwaysShow}</option>
                       {parents.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.label || "(untitled)"}
+                          {p.label || copy.untitled}
                         </option>
                       ))}
                     </select>
@@ -303,15 +342,15 @@ export function RegistrationFormBuilder({
                           if (parent?.questionType === "yes_no") {
                             return (
                               <>
-                                <option value="yes">…is Yes</option>
-                                <option value="no">…is No</option>
+                                <option value="yes">{copy.dependsYes}</option>
+                                <option value="no">{copy.dependsNo}</option>
                               </>
                             );
                           }
                           return (
                             <>
-                              <option value="true">…is checked</option>
-                              <option value="false">…is not checked</option>
+                              <option value="true">{copy.dependsChecked}</option>
+                              <option value="false">{copy.dependsUnchecked}</option>
                             </>
                           );
                         })()}
@@ -330,14 +369,12 @@ export function RegistrationFormBuilder({
         onClick={() => setQuestions((prev) => [...prev, newQuestion(prev.length)])}
         className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
       >
-        + Add question
+        {copy.addQuestion}
       </button>
 
       <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-        <h3 className="text-sm font-semibold text-zinc-900">Join approval</h3>
-        <p className="mt-1 text-xs text-zinc-600">
-          Control whether someone is signed up immediately or waits for coordinator approval.
-        </p>
+        <h3 className="text-sm font-semibold text-zinc-900">{copy.joinApproval}</h3>
+        <p className="mt-1 text-xs text-zinc-600">{copy.joinApprovalBlurb}</p>
 
         <fieldset className="mt-4 space-y-2">
           <label className="flex cursor-pointer items-start gap-2 text-sm">
@@ -349,10 +386,8 @@ export function RegistrationFormBuilder({
               className="mt-0.5"
             />
             <span>
-              <span className="font-medium text-zinc-900">Auto-accept</span>
-              <span className="block text-zinc-600">
-                Everyone who joins is confirmed (waitlist still applies if full).
-              </span>
+              <span className="font-medium text-zinc-900">{copy.approvalAuto}</span>
+              <span className="block text-zinc-600">{copy.approvalAutoHint}</span>
             </span>
           </label>
           <label className="flex cursor-pointer items-start gap-2 text-sm">
@@ -364,10 +399,8 @@ export function RegistrationFormBuilder({
               className="mt-0.5"
             />
             <span>
-              <span className="font-medium text-zinc-900">Always require approval</span>
-              <span className="block text-zinc-600">
-                Every registration stays pending until an admin accepts it.
-              </span>
+              <span className="font-medium text-zinc-900">{copy.approvalManual}</span>
+              <span className="block text-zinc-600">{copy.approvalManualHint}</span>
             </span>
           </label>
           <label className="flex cursor-pointer items-start gap-2 text-sm">
@@ -380,13 +413,11 @@ export function RegistrationFormBuilder({
               className="mt-0.5 disabled:opacity-50"
             />
             <span>
-              <span className="font-medium text-zinc-900">Conditional approval</span>
-              <span className="block text-zinc-600">
-                Pending or auto-accept based on an answer (e.g. no car → pending).
-              </span>
+              <span className="font-medium text-zinc-900">{copy.approvalConditional}</span>
+              <span className="block text-zinc-600">{copy.approvalConditionalHint}</span>
               {ruleQuestionCandidates.length === 0 ? (
                 <span className="mt-1 block text-xs text-amber-800">
-                  Add at least one question to use conditional approval.
+                  {copy.approvalConditionalNeedQuestion}
                 </span>
               ) : null}
             </span>
@@ -395,21 +426,21 @@ export function RegistrationFormBuilder({
 
         {approvalMode === "conditional" && ruleQuestionCandidates.length > 0 ? (
           <div className="mt-4 space-y-3 rounded-md border border-zinc-200 bg-white p-3">
-            <p className="text-xs font-medium text-zinc-700">When this answer…</p>
+            <p className="text-xs font-medium text-zinc-700">{copy.whenAnswer}</p>
             <select
               value={approvalConfig.rules[0]?.questionId ?? ""}
               onChange={(e) => {
                 const q = ruleQuestionCandidates.find((x) => x.id === e.target.value);
                 if (!q) return;
-                const when = RULE_WHEN_OPTIONS[q.questionType][0]?.value ?? "checked";
+                const when = ruleWhenOptions[q.questionType][0]?.value ?? "checked";
                 setPrimaryRule(q.id, when);
               }}
               className={inputClass()}
             >
-              <option value="">Select question…</option>
+              <option value="">{copy.selectQuestion}</option>
               {ruleQuestionCandidates.map((q) => (
                 <option key={q.id} value={q.id}>
-                  {q.label || "(untitled)"}
+                  {q.label || copy.untitled}
                 </option>
               ))}
             </select>
@@ -429,7 +460,7 @@ export function RegistrationFormBuilder({
                   }}
                   className={inputClass()}
                 >
-                  {RULE_WHEN_OPTIONS[selectedRuleQuestion.questionType].map((o) => (
+                  {ruleWhenOptions[selectedRuleQuestion.questionType].map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
                     </option>
@@ -445,27 +476,29 @@ export function RegistrationFormBuilder({
                       if (!rule) return;
                       setPrimaryRule(rule.questionId, rule.when, e.target.value);
                     }}
-                    placeholder="Value to match"
+                    placeholder={copy.valueToMatch}
                     className={inputClass()}
                   />
                 ) : null}
 
                 <p className="text-sm text-zinc-800">
-                  …then set status to{" "}
+                  {copy.thenStatus}{" "}
                   <strong>
-                    {approvalConfig.rules[0]?.outcome === "pending" ? "Pending approval" : "Auto-accepted"}
+                    {approvalConfig.rules[0]?.outcome === "pending"
+                      ? copy.statusPending
+                      : copy.statusAutoAccepted}
                   </strong>
                   <button
                     type="button"
                     onClick={invertPrimaryRuleOutcome}
                     className="ml-2 text-xs font-medium text-zinc-600 underline hover:text-zinc-900"
                   >
-                    (switch)
+                    {copy.switchOutcome}
                   </button>
                 </p>
 
                 <div className="border-t border-zinc-100 pt-3">
-                  <label className={labelClass()}>Everyone else</label>
+                  <label className={labelClass()}>{copy.everyoneElse}</label>
                   <select
                     value={approvalConfig.defaultOutcome}
                     onChange={(e) =>
@@ -476,8 +509,8 @@ export function RegistrationFormBuilder({
                     }
                     className={`${inputClass()} mt-1`}
                   >
-                    <option value="accepted">Auto-accept</option>
-                    <option value="pending">Pending approval</option>
+                    <option value="accepted">{copy.defaultAutoAccept}</option>
+                    <option value="pending">{copy.defaultPending}</option>
                   </select>
                 </div>
               </>

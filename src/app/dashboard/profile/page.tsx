@@ -33,8 +33,6 @@ export default async function ProfileSettingsPage() {
       name: user.name,
       email: user.email,
       image: user.image,
-      gender: user.gender,
-      genderChosenAt: user.genderChosenAt,
     })
     .from(user)
     .where(eq(user.id, session.user.id))
@@ -60,13 +58,7 @@ export default async function ProfileSettingsPage() {
         <ProfileSettingsForm
           initialName={row.name}
           email={row.email}
-          initialGender={row.gender}
-          genderChosen={row.genderChosenAt != null}
           copy={dict.profileSettings}
-          genderLabels={{
-            female: dict.register.femaleLabel,
-            male: dict.register.maleLabel,
-          }}
         />
       </div>
     </main>

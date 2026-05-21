@@ -2,22 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useState } from "react";
 
-import { updateProfileGenderAction } from "@/app/dashboard/profile-actions";
 import { authClient } from "@/lib/auth-client";
 import type { Messages } from "@/i18n/messages/en";
 
-type Gender = "female" | "male";
 type ActionState = { ok?: boolean; message?: string };
 
 type Props = {
   initialName: string;
   email: string;
-  initialGender: Gender;
-  genderChosen: boolean;
   copy: Messages["profileSettings"];
-  genderLabels: { female: string; male: string };
 };
 
 function statusClass(ok: boolean | undefined) {
@@ -29,10 +24,7 @@ function statusClass(ok: boolean | undefined) {
 export function ProfileSettingsForm({
   initialName,
   email,
-  initialGender,
-  genderChosen,
   copy,
-  genderLabels,
 }: Props) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
@@ -44,17 +36,6 @@ export function ProfileSettingsForm({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordStatus, setPasswordStatus] = useState<ActionState>();
   const [passwordPending, setPasswordPending] = useState(false);
-
-  const [genderState, genderAction, genderPending] = useActionState(
-    updateProfileGenderAction,
-    undefined,
-  );
-
-  useEffect(() => {
-    if (genderState?.ok) {
-      router.refresh();
-    }
-  }, [genderState?.ok, router]);
 
   async function saveName(e: React.FormEvent) {
     e.preventDefault();
@@ -113,8 +94,6 @@ export function ProfileSettingsForm({
       setPasswordPending(false);
     }
   }
-
-  const genderLabel = (v: Gender) => (v === "female" ? genderLabels.female : genderLabels.male);
 
   return (
     <div className="space-y-6">
@@ -179,52 +158,6 @@ export function ProfileSettingsForm({
             {namePending ? copy.saving : copy.saveName}
           </button>
         </form>
-      </section>
-
-      <section className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-medium text-zinc-900">{copy.gender}</h2>
-        <p className="mt-2 text-sm text-zinc-600">
-          {genderChosen ? copy.genderLocked : copy.chooseGender}
-        </p>
-
-        {genderState?.message ? (
-          <p
-            className={`mt-3 rounded-md border px-3 py-2 text-sm ${statusClass(genderState.ok)}`}
-            role="status"
-          >
-            {genderState.message}
-          </p>
-        ) : null}
-
-        {genderChosen ? (
-          <p className="mt-4 text-sm font-medium text-zinc-900">{genderLabel(initialGender)}</p>
-        ) : (
-          <form action={genderAction} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="min-w-0 flex-1">
-              <label htmlFor="profile-gender" className="mb-1 block text-sm font-medium text-zinc-800">
-                {copy.gender}
-              </label>
-              <select
-                id="profile-gender"
-                name="gender"
-                defaultValue={initialGender}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
-                disabled={genderPending}
-                required
-              >
-                <option value="female">{genderLabels.female}</option>
-                <option value="male">{genderLabels.male}</option>
-              </select>
-            </div>
-            <button
-              type="submit"
-              disabled={genderPending}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-            >
-              {genderPending ? copy.saving : copy.saveGender}
-            </button>
-          </form>
-        )}
       </section>
 
       <section className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">

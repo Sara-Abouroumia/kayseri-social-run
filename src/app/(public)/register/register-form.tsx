@@ -7,11 +7,26 @@ import { useMemo, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import type { Messages } from "@/i18n/messages/en";
 
+import { checkRegisterEmailAction } from "./register-actions";
+
 type RegisterFormProps = {
   inviteLockedEmail: string | null;
   defaultNext: string;
   copy: Messages["register"];
 };
+
+type DuplicateDialogKind = "awaiting_verification" | "already_active";
+
+function isDuplicateSignupError(message: string | undefined): boolean {
+  if (!message) return false;
+  const m = message.toLowerCase();
+  return (
+    m.includes("already") ||
+    m.includes("exist") ||
+    m.includes("duplicate") ||
+    m.includes("unique")
+  );
+}
 
 export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterFormProps) {
   const router = useRouter();
@@ -30,6 +45,7 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
   const [gender, setGender] = useState<(typeof genderOptions)[number]["value"]>("female");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [duplicateDialog, setDuplicateDialog] = useState<DuplicateDialogKind | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loginHref =
@@ -37,10 +53,16 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
       ? "/login"
       : `/login?next=${encodeURIComponent(defaultNext)}`;
 
+  function openDuplicateDialog(kind: DuplicateDialogKind) {
+    setDuplicateDialog(kind);
+    setErrorMessage(null);
+  }
+
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
+    setDuplicateDialog(null);
     setIsSubmitting(true);
 
     try {
@@ -48,6 +70,16 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
         setErrorMessage(
           `${copy.inviteEmailUse} (${inviteLockedEmail}) ${copy.inviteEmailSuffix}`,
         );
+        return;
+      }
+
+      const { status } = await checkRegisterEmailAction(email);
+      if (status === "awaiting_verification") {
+        openDuplicateDialog("awaiting_verification");
+        return;
+      }
+      if (status === "already_active") {
+        openDuplicateDialog("already_active");
         return;
       }
 
@@ -60,6 +92,19 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
       } as Parameters<typeof authClient.signUp.email>[0] & { gender: typeof gender });
 
       if (error) {
+        if (isDuplicateSignupError(error.message)) {
+          const { status: retryStatus } = await checkRegisterEmailAction(email);
+          if (retryStatus === "awaiting_verification") {
+            openDuplicateDialog("awaiting_verification");
+            return;
+          }
+          if (retryStatus === "already_active") {
+            openDuplicateDialog("already_active");
+            return;
+          }
+          openDuplicateDialog("awaiting_verification");
+          return;
+        }
         setErrorMessage(error.message ?? copy.errorGeneric);
         return;
       }
@@ -79,6 +124,19 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
     }
   }
 
+  const dialogCopy =
+    duplicateDialog === "already_active"
+      ? {
+          title: copy.alreadyAccountTitle,
+          body: copy.alreadyAccountBody,
+        }
+      : duplicateDialog === "awaiting_verification"
+        ? {
+            title: copy.alreadyEmailedTitle,
+            body: copy.alreadyEmailedBody,
+          }
+        : null;
+
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-white px-6">
       <h1 className="mb-6 text-3xl font-bold">{copy.title}</h1>
@@ -87,6 +145,51 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
         <p className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
           {copy.inviteBanner}
         </p>
+      ) : null}
+
+      {duplicateDialog && dialogCopy ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setDuplicateDialog(null);
+          }}
+        >
+          <div
+            className="max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-lg"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="register-duplicate-title"
+            aria-describedby="register-duplicate-body"
+          >
+            <h2
+              id="register-duplicate-title"
+              className="text-lg font-semibold text-zinc-900"
+            >
+              {dialogCopy.title}
+            </h2>
+            <p id="register-duplicate-body" className="mt-2 text-sm leading-relaxed text-zinc-600">
+              {dialogCopy.body}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+              {duplicateDialog === "already_active" ? (
+                <Link
+                  href={loginHref}
+                  className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+                >
+                  {copy.login}
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setDuplicateDialog(null)}
+                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              >
+                {copy.alreadyEmailedDismiss}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       <form onSubmit={(e) => void handleRegister(e)} className="space-y-4">

@@ -10,6 +10,7 @@ import { eventParticipants, events } from "@/db/schema/events";
 import { auth } from "@/lib/auth";
 import {
   collectAnswersFromFormData,
+  collectVisibleAnswers,
   evaluateJoinApprovalOutcome,
   validateRegistrationAnswers,
 } from "@/lib/event-registration";
@@ -22,6 +23,8 @@ import {
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import type { Messages } from "@/i18n/messages/en";
+import { canOpenEventSignups } from "@/lib/event-schedule-phase";
+import { revalidateEventSurfaces } from "@/lib/revalidate-event-surfaces";
 
 type EventRow = InferSelectModel<typeof events>;
 type RsvpMessages = Messages["rsvpActions"];
@@ -29,8 +32,7 @@ type RsvpMessages = Messages["rsvpActions"];
 export type RsvpActionState = { ok?: boolean; message?: string };
 
 function revalidateEventPaths(shareSlug: string, eventId: string) {
-  revalidatePath(`/e/${shareSlug}`);
-  revalidatePath("/dashboard");
+  revalidateEventSurfaces(shareSlug);
   revalidatePath(`/dashboard/admin/events/${eventId}/edit`);
 }
 
@@ -55,7 +57,7 @@ function assertCanAttemptRsvp(
   if (!emailVerified) {
     return m.verifyEmailFirst;
   }
-  if (new Date(event.startsAt) <= now) {
+  if (!canOpenEventSignups(event, now)) {
     return m.startedSignupsClosed;
   }
   if (event.joinDeadlineAt && new Date(event.joinDeadlineAt) < now) {
@@ -162,24 +164,7 @@ export async function joinEventAction(
     });
   }
 
-  const visibleAnswers: Record<string, string> = {};
-  const byId = new Map(questions.map((q) => [q.id, q]));
-  for (const q of questions) {
-    if (q.dependsOnQuestionId) {
-      const parent = byId.get(q.dependsOnQuestionId);
-      if (!parent) continue;
-      const parentVal = formAnswers[q.dependsOnQuestionId] ?? "";
-      const expected = (q.dependsOnValue ?? "true").trim();
-      const normalized =
-        parent.questionType === "checkbox"
-          ? parentVal === "true" || parentVal === "on"
-            ? "true"
-            : "false"
-          : parentVal.trim();
-      if (normalized !== expected) continue;
-    }
-    visibleAnswers[q.id] = formAnswers[q.id] ?? "";
-  }
+  const visibleAnswers = collectVisibleAnswers(questions, formAnswers);
 
   await saveParticipantAnswers(participantId, visibleAnswers);
 

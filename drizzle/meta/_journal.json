@@ -92,6 +92,20 @@
       "when": 1778868000000,
       "tag": "0012_user_gender_chosen_at",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1778870000000,
+      "tag": "0013_community_ideas",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1778872000000,
+      "tag": "0014_community_idea_read",
+      "breakpoints": true
     }
   ]
 }

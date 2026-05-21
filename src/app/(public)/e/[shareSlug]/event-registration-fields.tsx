@@ -3,7 +3,11 @@
 import { useMemo, useState } from "react";
 
 import type { RegistrationQuestionDraft } from "@/lib/event-registration";
-import { isQuestionVisible } from "@/lib/event-registration";
+import {
+  isQuestionVisible,
+  pruneAnswersForVisibility,
+  sortQuestionsForDisplay,
+} from "@/lib/event-registration";
 
 function inputClass() {
   return "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900";
@@ -23,25 +27,35 @@ type Props = {
 };
 
 export function EventRegistrationFields({ questions, labels }: Props) {
+  const displayQuestions = useMemo(
+    () => sortQuestionsForDisplay(questions),
+    [questions],
+  );
+
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const q of questions) {
+    for (const q of displayQuestions) {
       if (q.questionType === "checkbox") init[q.id] = "false";
     }
     return init;
   });
 
-  const byId = useMemo(() => new Map(questions.map((q) => [q.id, q])), [questions]);
+  const byId = useMemo(
+    () => new Map(displayQuestions.map((q) => [q.id, q])),
+    [displayQuestions],
+  );
 
   function setAnswer(id: string, value: string) {
-    setAnswers((prev) => ({ ...prev, [id]: value }));
+    setAnswers((prev) =>
+      pruneAnswersForVisibility(displayQuestions, { ...prev, [id]: value }),
+    );
   }
 
-  if (questions.length === 0) return null;
+  if (displayQuestions.length === 0) return null;
 
   return (
     <div className="mt-4 space-y-4 border-t border-zinc-200 pt-4">
-      {questions.map((q) => {
+      {displayQuestions.map((q) => {
         if (!isQuestionVisible(q, answers, byId)) return null;
 
         const name = `q_${q.id}`;

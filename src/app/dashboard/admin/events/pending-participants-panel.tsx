@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 
+import type { EventStatsCopy } from "@/i18n/messages/event-stats";
+
 import {
   acceptParticipantAction,
   rejectParticipantAction,
@@ -17,9 +19,18 @@ type Row = {
 type Props = {
   eventId: string;
   rows: Row[];
+  copy: EventStatsCopy;
 };
 
-function RowActions({ eventId, participantId }: { eventId: string; participantId: string }) {
+function RowActions({
+  eventId,
+  participantId,
+  copy,
+}: {
+  eventId: string;
+  participantId: string;
+  copy: EventStatsCopy;
+}) {
   const [acceptState, acceptAction, acceptPending] = useActionState(
     acceptParticipantAction,
     undefined as ApprovalActionState | undefined,
@@ -51,7 +62,7 @@ function RowActions({ eventId, participantId }: { eventId: string; participantId
             disabled={acceptPending || rejectPending}
             className="rounded-md bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
           >
-            {acceptPending ? "…" : "Accept"}
+            {acceptPending ? copy.working : copy.accept}
           </button>
         </form>
         <form action={rejectAction}>
@@ -62,7 +73,7 @@ function RowActions({ eventId, participantId }: { eventId: string; participantId
             disabled={acceptPending || rejectPending}
             className="rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-800 hover:bg-red-50 disabled:opacity-50"
           >
-            {rejectPending ? "…" : "Reject"}
+            {rejectPending ? copy.working : copy.reject}
           </button>
         </form>
       </div>
@@ -70,17 +81,15 @@ function RowActions({ eventId, participantId }: { eventId: string; participantId
   );
 }
 
-export function PendingParticipantsPanel({ eventId, rows }: Props) {
+export function PendingParticipantsPanel({ eventId, rows, copy }: Props) {
   if (rows.length === 0) return null;
 
   return (
     <div className="mt-8 rounded-md border border-amber-200 bg-amber-50/50 p-4">
       <h3 className="text-sm font-semibold text-zinc-900">
-        Pending approval ({rows.length})
+        {copy.pendingApprovalHeading.replace("{count}", String(rows.length))}
       </h3>
-      <p className="mt-1 text-xs text-zinc-600">
-        Review registrations that need coordinator approval before they count as signed up.
-      </p>
+      <p className="mt-1 text-xs text-zinc-600">{copy.pendingApprovalIntro}</p>
       <ul className="mt-4 divide-y divide-amber-100">
         {rows.map((r) => (
           <li
@@ -91,7 +100,7 @@ export function PendingParticipantsPanel({ eventId, rows }: Props) {
               <p className="font-medium text-zinc-900">{r.name}</p>
               <p className="text-xs text-zinc-500">{r.email}</p>
             </div>
-            <RowActions eventId={eventId} participantId={r.participantId} />
+            <RowActions eventId={eventId} participantId={r.participantId} copy={copy} />
           </li>
         ))}
       </ul>

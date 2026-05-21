@@ -1,0 +1,63 @@
+/** Admin system settings (users list, etc.) */
+
+export const systemAdminEn = {
+  registeredUsersHeading: "Registered users",
+  registeredUsersIntro:
+    "Everyone who has created an account on this site. Admins and developers are marked separately.",
+  registeredUsersEmpty: "No registered users yet.",
+  registeredUsersCount: "{count} registered user(s)",
+  colName: "Name",
+  colEmail: "Email",
+  colVerified: "Verified",
+  colRegistered: "Registered",
+  colRole: "Role",
+  roleMember: "Member",
+  verifiedYes: "Yes",
+  verifiedNo: "No",
+  youLabel: "(You)",
+  filterAdmins: "Admins",
+  filterUsers: "Users",
+  filterAll: "All",
+  filterCount: "{shown} shown · {total} total",
+  filterEmptyAdmins: "No platform admins match this filter.",
+  filterEmptyUsers: "No members match this filter.",
+  colActions: "Actions",
+  makeAdmin: "Make admin",
+  removeAdmin: "Remove admin",
+  protected: "Protected",
+  working: "…",
+  makeAdminSuccess: "{name} is now a platform admin.",
+  removeAdminSuccess: "{name} is no longer a platform admin.",
+} as const;
+
+export const systemAdminTr = {
+  registeredUsersHeading: "Kayıtlı kullanıcılar",
+  registeredUsersIntro:
+    "Bu sitede hesap oluşturan herkes. Yöneticiler ve geliştiriciler ayrı işaretlenir.",
+  registeredUsersEmpty: "Henüz kayıtlı kullanıcı yok.",
+  registeredUsersCount: "{count} kayıtlı kullanıcı",
+  colName: "Ad",
+  colEmail: "E-posta",
+  colVerified: "Doğrulandı",
+  colRegistered: "Kayıt tarihi",
+  colRole: "Rol",
+  roleMember: "Üye",
+  verifiedYes: "Evet",
+  verifiedNo: "Hayır",
+  youLabel: "(Siz)",
+  filterAdmins: "Yöneticiler",
+  filterUsers: "Üyeler",
+  filterAll: "Tümü",
+  filterCount: "{shown} gösteriliyor · {total} toplam",
+  filterEmptyAdmins: "Bu filtrede platform yöneticisi yok.",
+  filterEmptyUsers: "Bu filtrede üye yok.",
+  colActions: "İşlemler",
+  makeAdmin: "Yönetici yap",
+  removeAdmin: "Yöneticiliği kaldır",
+  protected: "Korumalı",
+  working: "…",
+  makeAdminSuccess: "{name} artık platform yöneticisi.",
+  removeAdminSuccess: "{name} artık platform yöneticisi değil.",
+} as const;
+
+export type SystemAdminCopy = { [K in keyof typeof systemAdminEn]: string };

@@ -1,4 +1,4 @@
-import { and, asc, gte, inArray, type InferSelectModel } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, type InferSelectModel } from "drizzle-orm";
 
 import { db } from "@/db";
 import { events } from "@/db/schema/events";
@@ -14,6 +14,9 @@ export type UpcomingDashboardEvent = Pick<
   | "activityTypeEmoji"
   | "visibility"
   | "coverImageUrl"
+  | "meetingPointName"
+  | "distanceKm"
+  | "description"
 >;
 
 export async function getUpcomingEventsForDashboard(params: {
@@ -36,9 +39,43 @@ export async function getUpcomingEventsForDashboard(params: {
       activityTypeEmoji: events.activityTypeEmoji,
       visibility: events.visibility,
       coverImageUrl: events.coverImageUrl,
+      meetingPointName: events.meetingPointName,
+      distanceKm: events.distanceKm,
+      description: events.description,
     })
     .from(events)
     .where(and(gte(events.startsAt, now), inArray(events.visibility, visibilities)))
     .orderBy(asc(events.startsAt))
     .limit(12);
+}
+
+/** Public landing page — upcoming club events (registration requires an account). */
+export async function getPublicUpcomingEvents(
+  limit = 4,
+): Promise<UpcomingDashboardEvent[]> {
+  const now = new Date();
+
+  return db
+    .select({
+      id: events.id,
+      title: events.title,
+      shareSlug: events.shareSlug,
+      startsAt: events.startsAt,
+      activityType: events.activityType,
+      activityTypeEmoji: events.activityTypeEmoji,
+      visibility: events.visibility,
+      coverImageUrl: events.coverImageUrl,
+      meetingPointName: events.meetingPointName,
+      distanceKm: events.distanceKm,
+      description: events.description,
+    })
+    .from(events)
+    .where(
+      and(
+        gte(events.startsAt, now),
+        inArray(events.visibility, ["public", "members_only"]),
+      ),
+    )
+    .orderBy(asc(events.startsAt))
+    .limit(limit);
 }

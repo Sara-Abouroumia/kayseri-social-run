@@ -1,4 +1,6 @@
 export * from "./auth";
+export * from "./community-ideas";
+export * from "./community-idea-read";
 export * from "./clubs";
 export * from "./events";
 export * from "./event-registration";

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import {
   createEventAction,
@@ -12,8 +12,17 @@ import {
   type EventFormInitial,
 } from "@/app/dashboard/admin/events/event-form-initial";
 
+import type { Messages } from "@/i18n/messages/en";
+import {
+  BLOB_IMAGE_MAX_BYTES,
+  INLINE_IMAGE_MAX_BYTES,
+  type UploadImageErrorCode,
+} from "@/lib/upload-image";
+
 import { EventTypeMetricsSection } from "./event-type-metrics-section";
 import { RegistrationFormBuilder } from "./registration-form-builder";
+
+type FormCopy = Messages["adminEventForm"];
 
 function inputClass() {
   return "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900";
@@ -23,13 +32,50 @@ function labelClass() {
   return "block text-sm font-medium text-zinc-800";
 }
 
+const COVER_MAX_MB = String(Math.round(BLOB_IMAGE_MAX_BYTES / (1024 * 1024)));
+const COVER_MAX_KB = String(Math.round(INLINE_IMAGE_MAX_BYTES / 1024));
+
+function fillCoverLimits(text: string) {
+  return text.replaceAll("{maxMb}", COVER_MAX_MB).replaceAll("{maxKb}", COVER_MAX_KB);
+}
+
+function localizedUploadError(
+  copy: FormCopy,
+  payload: { error?: string; code?: UploadImageErrorCode },
+): string {
+  switch (payload.code) {
+    case "too_large_blob":
+      return fillCoverLimits(copy.uploadTooLarge);
+    case "too_large_inline":
+      return fillCoverLimits(copy.uploadTooLargeInline);
+    case "bad_mime":
+      return copy.uploadBadMime;
+    default:
+      return payload.error ?? copy.uploadFailed;
+  }
+}
+
 type EventFormProps = {
   mode: "create" | "edit";
   initial?: EventFormInitial;
   siteOrigin: string;
+  readOnly?: boolean;
+  showDeveloperHints?: boolean;
+  showShareLink?: boolean;
+  onUpdateSuccess?: () => void;
+  copy: FormCopy;
 };
 
-export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
+export function EventForm({
+  mode,
+  initial,
+  siteOrigin,
+  readOnly = false,
+  showDeveloperHints = false,
+  showShareLink = true,
+  onUpdateSuccess,
+  copy,
+}: EventFormProps) {
   const base = initial ?? emptyEventFormInitial;
   const [coverUrl, setCoverUrl] = useState(base.coverImageUrl);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -59,14 +105,18 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
         body: fd,
         credentials: "include",
       });
-      const data = (await res.json()) as { url?: string; error?: string };
+      const data = (await res.json()) as {
+        url?: string;
+        error?: string;
+        code?: UploadImageErrorCode;
+      };
       if (!res.ok) {
-        setUploadError(data.error ?? "Upload failed.");
+        setUploadError(localizedUploadError(copy, data));
         return;
       }
       if (data.url) setCoverUrl(data.url);
     } catch {
-      setUploadError("Upload failed.");
+      setUploadError(copy.uploadFailed);
     } finally {
       setUploading(false);
     }
@@ -75,6 +125,12 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
   const action = mode === "create" ? createAction : updateAction;
   const pending = mode === "create" ? createPending : updatePending;
   const state = mode === "create" ? createState : updateState;
+
+  useEffect(() => {
+    if (mode === "edit" && state?.ok && onUpdateSuccess) {
+      onUpdateSuccess();
+    }
+  }, [mode, state?.ok, onUpdateSuccess]);
 
   const sharePath =
     base.shareSlug != null && base.shareSlug !== ""
@@ -87,18 +143,15 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
         <input type="hidden" name="eventId" value={base.id} />
       ) : null}
 
-      {sharePath ? (
+      {showShareLink && sharePath ? (
         <section
           className="rounded-lg border border-zinc-200 bg-zinc-50 p-4"
           aria-labelledby="share-heading"
         >
           <h2 id="share-heading" className="text-sm font-medium text-zinc-900">
-            Share link
+            {copy.shareLink}
           </h2>
-          <p className="mt-1 text-xs text-zinc-600">
-            Anyone with this link can open the activity page. Joining still
-            requires an account on this site.
-          </p>
+          <p className="mt-1 text-xs text-zinc-600">{copy.shareLinkHint}</p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
             <code className="block min-w-0 flex-1 break-all rounded border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-800">
               {sharePath}
@@ -108,19 +161,20 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
               className="shrink-0 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50"
               onClick={() => void navigator.clipboard.writeText(sharePath)}
             >
-              Copy
+              {copy.copy}
             </button>
           </div>
         </section>
       ) : null}
 
+      <fieldset disabled={readOnly} className="min-w-0 space-y-8 border-0 p-0 disabled:opacity-100">
       <section className="space-y-4" aria-labelledby="basics-heading">
         <h2 id="basics-heading" className="text-lg font-medium text-zinc-900">
-          Basics
+          {copy.basics}
         </h2>
         <div>
           <label className={labelClass()} htmlFor="title">
-            Title
+            {copy.title}
           </label>
           <input
             id="title"
@@ -132,6 +186,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
           />
         </div>
         <EventTypeMetricsSection
+          copy={copy}
           activityType={base.activityType}
           activityTypeEmoji={base.activityTypeEmoji}
           distanceKm={base.distanceKm}
@@ -142,7 +197,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
         />
         <div>
           <label className={labelClass()} htmlFor="description">
-            Notes / description
+            {copy.notesDescription}
           </label>
           <textarea
             id="description"
@@ -156,7 +211,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass()} htmlFor="startsAt">
-              Starts
+              {copy.starts}
             </label>
             <input
               id="startsAt"
@@ -169,7 +224,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
           </div>
           <div>
             <label className={labelClass()} htmlFor="endsAt">
-              Ends (optional)
+              {copy.endsOptional}
             </label>
             <input
               id="endsAt"
@@ -182,7 +237,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
         </div>
         <div>
           <label className={labelClass()} htmlFor="visibility">
-            Visibility
+            {copy.visibility}
           </label>
           <select
             id="visibility"
@@ -190,22 +245,21 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
             defaultValue={base.visibility}
             className={`${inputClass()} mt-1`}
           >
-            <option value="public">Public — share link shows full details</option>
-            <option value="members_only">
-              Members only — teaser until signed in
-            </option>
-            <option value="private">Private — minimal teaser</option>
+            <option value="public">{copy.visibilityPublic}</option>
+            <option value="members_only">{copy.visibilityMembers}</option>
+            <option value="private">{copy.visibilityPrivate}</option>
           </select>
+          <p className="mt-1 text-xs text-zinc-500">{copy.visibilityHint}</p>
         </div>
       </section>
 
       <section className="space-y-4" aria-labelledby="location-heading">
         <h2 id="location-heading" className="text-lg font-medium text-zinc-900">
-          Meeting point
+          {copy.meetingPoint}
         </h2>
         <div>
           <label className={labelClass()} htmlFor="meetingPointName">
-            Place name
+            {copy.placeName}
           </label>
           <input
             id="meetingPointName"
@@ -217,7 +271,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
         </div>
         <div>
           <label className={labelClass()} htmlFor="meetingPointAddress">
-            Address
+            {copy.address}
           </label>
           <input
             id="meetingPointAddress"
@@ -230,7 +284,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass()} htmlFor="latitude">
-              Latitude (optional)
+              {copy.latitudeOptional}
             </label>
             <input
               id="latitude"
@@ -242,7 +296,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
           </div>
           <div>
             <label className={labelClass()} htmlFor="longitude">
-              Longitude (optional)
+              {copy.longitudeOptional}
             </label>
             <input
               id="longitude"
@@ -257,11 +311,11 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
 
       <section className="space-y-4" aria-labelledby="run-heading">
         <h2 id="run-heading" className="text-lg font-medium text-zinc-900">
-          Activity details
+          {copy.activityDetails}
         </h2>
         <div>
           <label className={labelClass()} htmlFor="requiredItems">
-            Required items
+            {copy.requiredItems}
           </label>
           <textarea
             id="requiredItems"
@@ -269,13 +323,13 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
             rows={2}
             maxLength={2000}
             defaultValue={base.requiredItems}
-            placeholder="Water, visibility gear…"
+            placeholder={copy.requiredItemsPlaceholder}
             className={`${inputClass()} mt-1`}
           />
         </div>
         <div>
           <label className={labelClass()} htmlFor="coordinatorName">
-            Coordinator
+            {copy.coordinator}
           </label>
           <input
             id="coordinatorName"
@@ -288,7 +342,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass()} htmlFor="maxParticipants">
-              Max participants
+              {copy.maxParticipants}
             </label>
             <input
               id="maxParticipants"
@@ -300,7 +354,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
           </div>
           <div>
             <label className={labelClass()} htmlFor="joinDeadlineAt">
-              Join deadline
+              {copy.joinDeadline}
             </label>
             <input
               id="joinDeadlineAt"
@@ -309,11 +363,12 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
               defaultValue={base.joinDeadlineAt}
               className={`${inputClass()} mt-1`}
             />
+            <p className="mt-1 text-xs text-zinc-500">{copy.joinDeadlineHint}</p>
           </div>
         </div>
         <div>
           <label className={labelClass()} htmlFor="weatherInfo">
-            Weather / conditions
+            {copy.weatherConditions}
           </label>
           <textarea
             id="weatherInfo"
@@ -327,6 +382,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
       </section>
 
       <RegistrationFormBuilder
+        copy={copy}
         initialQuestions={base.registrationQuestions}
         initialApprovalMode={base.joinApprovalMode}
         initialApprovalConfig={base.joinApprovalConfig}
@@ -334,15 +390,16 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
 
       <section className="space-y-4" aria-labelledby="cover-heading">
         <h2 id="cover-heading" className="text-lg font-medium text-zinc-900">
-          Cover image
+          {copy.coverImage}
         </h2>
-        <p className="text-sm text-zinc-600">
-          With{" "}
-          <code className="rounded bg-zinc-100 px-1">BLOB_READ_WRITE_TOKEN</code>{" "}
-          set, uploads go to Vercel Blob (up to 4 MB). Without it, smaller images
-          (about 750 KB or less) are embedded in the database; you can also paste
-          an https image URL.
-        </p>
+        <p className="text-sm text-zinc-600">{fillCoverLimits(copy.coverImageHint)}</p>
+        {showDeveloperHints ? (
+          <p className="text-xs text-zinc-500">
+            {fillCoverLimits(copy.coverImageHintDev).split("{token}")[0]}
+            <code className="rounded bg-zinc-100 px-1">BLOB_READ_WRITE_TOKEN</code>
+            {fillCoverLimits(copy.coverImageHintDev).split("{token}")[1] ?? ""}
+          </p>
+        ) : null}
         <input type="hidden" name="coverImageUrl" value={coverUrl} />
         <div className="flex flex-wrap items-center gap-3">
           <input
@@ -358,7 +415,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
             onClick={() => fileRef.current?.click()}
             className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
           >
-            {uploading ? "Uploading…" : "Upload image"}
+            {uploading ? copy.uploading : copy.uploadImage}
           </button>
           {coverUrl ? (
             <button
@@ -366,7 +423,7 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
               className="text-sm text-red-800 underline"
               onClick={() => setCoverUrl("")}
             >
-              Remove image
+              {copy.removeImage}
             </button>
           ) : null}
         </div>
@@ -377,13 +434,13 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
         ) : null}
         <div>
           <label className={labelClass()} htmlFor="coverUrlManual">
-            Or image URL (https)
+            {copy.imageUrlOptional}
           </label>
           <input
             id="coverUrlManual"
             value={coverUrl}
             onChange={(e) => setCoverUrl(e.target.value)}
-            placeholder="https://…"
+            placeholder={copy.imageUrlPlaceholder}
             className={`${inputClass()} mt-1`}
           />
         </div>
@@ -400,16 +457,23 @@ export function EventForm({ mode, initial, siteOrigin }: EventFormProps) {
           </div>
         ) : null}
       </section>
+      </fieldset>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-        >
-          {pending ? "Saving…" : mode === "create" ? "Create event" : "Save changes"}
-        </button>
-      </div>
+      {!readOnly ? (
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          >
+            {pending
+              ? copy.saving
+              : mode === "create"
+                ? copy.createEvent
+                : copy.saveChanges}
+          </button>
+        </div>
+      ) : null}
 
       {state?.message ? (
         <p

@@ -1,4 +1,9 @@
 import type { Messages } from "./en";
+import { adminEventFormTr } from "./admin-event-form";
+import { eventStatsTr } from "./event-stats";
+import { ideaBoxTr } from "./idea-box";
+import { systemAdminTr } from "./system-admin";
+import { landingPageTr } from "./landing-page";
 
 export const tr: Messages = {
   nav: {
@@ -6,7 +11,10 @@ export const tr: Messages = {
     login: "Giriş",
     register: "Kayıt ol",
     dashboard: "Panel",
+    ksrSite: "KSR",
     events: "Etkinlikler",
+    ideaBox: "Fikir Kutusu",
+    unreadIdeasBadge: "{count} okunmamış fikir",
     systemSettings: "Sistem ayarları",
     signOut: "Çıkış",
     signOutConfirm: "Emin?",
@@ -18,6 +26,9 @@ export const tr: Messages = {
     editSiteNav: "Site",
     adminSection: "Yönetim",
     profileSettings: "Profil ayarları",
+    menu: "Menü",
+    openMenu: "Menüyü aç",
+    closeMenu: "Menüyü kapat",
   },
   locale: {
     switchToEnglish: "İngilizce",
@@ -31,6 +42,11 @@ export const tr: Messages = {
   home: {
     titleAlt: "Kayseri Social Run",
   },
+  landing: landingPageTr,
+  adminEventForm: adminEventFormTr,
+  eventStats: eventStatsTr,
+  ideaBox: ideaBoxTr,
+  systemAdmin: systemAdminTr,
   aboutEditor: {
     title: "Kayseri Social Run",
     blurb:
@@ -203,6 +219,13 @@ export const tr: Messages = {
       "Gelen kutunuzu kontrol edin; doğrulama bağlantısı geldi. Giriş yapmadan önce e-postanızı doğrulamanız gerekir.",
     afterVerifyAdmin: "Doğrulamadan sonra yönetici erişiminiz otomatik olarak açılır.",
     errorGeneric: "Hesap oluşturulamadı",
+    alreadyEmailedTitle: "Kayıt e-postası zaten gönderildi",
+    alreadyEmailedBody:
+      "Bu adres için kaydı tamamlamanız gereken bir e-posta zaten gönderildi. Gelen kutunuzu (ve istenmeyen klasörünü) kontrol edip doğrulama bağlantısını kullanın.",
+    alreadyEmailedDismiss: "Tamam",
+    alreadyAccountTitle: "Hesap zaten var",
+    alreadyAccountBody:
+      "Bu e-posta zaten kayıtlı ve doğrulanmış. Yeni hesap açmak yerine şifrenizle giriş yapın.",
     femaleLabel: "Kadın",
     maleLabel: "Erkek",
   },
@@ -233,13 +256,29 @@ export const tr: Messages = {
     cost: "Ücret",
     costFree: "Ücretsiz katılım",
     signUp: "Kayıt ol",
+    eventFinished: "Etkinlik bitti",
+    eventFinishedBlurb: "Bu aktivite sona erdi. Kayıt artık alınmıyor.",
+    eventOngoing: "Şu anda devam ediyor",
+    eventOngoingBlurb: "Bu aktivite sürüyor. Kayıtlar kapalı.",
+    eventStatusOpen: "Bize katılın",
+    eventStatusJoined: "Katılıyorsunuz",
+    eventStatusWaitlistedBadge: "Yedek listede",
+    eventStatusPendingBadge: "Onay bekleniyor",
     signedUp: "Bu aktiviteye kayıtlısınız.",
     cancelSignup: "Kaydı iptal et",
+    cancelSignupConfirm:
+      "Bu etkinlik için kaydınızı iptal etmek istediğinize emin misiniz?",
+    leaveWaitlistConfirm: "Yedek listeden çıkmak istediğinize emin misiniz?",
+    cancelPendingConfirm:
+      "Bekleyen kaydınızı geri çekmek istediğinize emin misiniz?",
+    confirmCancelYes: "Evet, iptal et",
+    keepRegistration: "Kaydım kalsın",
     updating: "Güncelleniyor…",
     waitlistBlurb:
       "Yedek listedesiniz. Bir iptal olursa otomatik olarak sıraya alınabilirsiniz.",
     leaveWaitlist: "Yedek listeden çık",
-    signMeUp: "Beni kaydet",
+    signMeUp: "Kayıt ol",
+    alreadyHaveAccount: "Zaten hesabınız var mı?",
     saving: "Kaydediliyor…",
     pendingBlurb:
       "Kaydınız koordinatör onayı bekliyor. İncelendiğinde bilgilendirileceksiniz.",
@@ -260,10 +299,16 @@ export const tr: Messages = {
     startedClose: "Bu aktivite başlamış — kayıtlar kapalı.",
     signedUpCount: "{count} kayıtlı",
     signedUpCountMax: "{going} / {max} kayıtlı",
+    backToEvents: "← Etkinliklere dön",
     footerDashboard: "Panel",
     footerHome: "Ana sayfa",
-    editCoverImage: "Kapak görselini değiştir",
-    addCoverImage: "Kapak görseli ekle",
+    editCoverImage: "Görseli değiştir",
+    editActivity: "Etkinliği düzenle",
+    viewStatistics: "İstatistikleri gör",
+    viewEventDetails: "Etkinlik detayları",
+    eventDetailsHeading: "Etkinlik bilgileri",
+    signUpSectionHeading: "Kayıt",
+    addCoverImage: "Görsel yükle",
     coverUploadFailed: "Görsel yüklenemedi.",
   },
   rsvpActions: {

@@ -1,12 +1,35 @@
-import { AboutBlocksRenderer } from "@/components/about-blocks-renderer";
-import { getPublishedSiteAbout } from "@/lib/site-about";
+import { SitePage } from "@/components/site-page";
+import { getClubInstagramUrl, getClubWhatsAppUrl } from "@/lib/club-social-links";
+import {
+  formatLandingStatValue,
+  getClubRunStats,
+} from "@/lib/club-run-stats";
+import {
+  formatMemberCountForDisplay,
+  getRegisteredUserCount,
+} from "@/lib/member-stats";
+import { getPublicUpcomingEvents } from "@/lib/upcoming-events";
+
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const { blocks, pageStyle } = await getPublishedSiteAbout();
+  const [upcomingEvents, registeredUserCount, clubRunStats] = await Promise.all([
+    getPublicUpcomingEvents(4),
+    getRegisteredUserCount(),
+    getClubRunStats(),
+  ]);
 
   return (
-    <div className="min-h-[calc(100dvh-5.5rem)]">
-      <AboutBlocksRenderer blocks={blocks} pageStyle={pageStyle} />
-    </div>
+    <SitePage
+      upcomingEvents={upcomingEvents}
+      instagramUrl={getClubInstagramUrl()}
+      whatsappUrl={getClubWhatsAppUrl()}
+      memberCount={formatMemberCountForDisplay(registeredUserCount)}
+      runStats={{
+        runsThisYear: clubRunStats.runsThisYear,
+        totalKm: formatLandingStatValue(clubRunStats.totalKm),
+        yearsActive: clubRunStats.yearsActive,
+      }}
+    />
   );
 }

@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 
+import { countUnreadCommunityIdeasForAdmin } from "@/app/dashboard/idea-box-actions";
 import { DashboardHeader } from "@/app/dashboard/dashboard-header";
 import { auth } from "@/lib/auth";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -19,6 +20,9 @@ export async function AuthenticatedDashboardHeader() {
   const user = session.user;
   const displayName = user.name?.trim() || user.email;
   const userIsPlatformAdmin = await isPlatformAdmin(user.id, user.email);
+  const unreadIdeaCount = userIsPlatformAdmin
+    ? await countUnreadCommunityIdeasForAdmin(user.id)
+    : 0;
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
@@ -28,6 +32,7 @@ export async function AuthenticatedDashboardHeader() {
       displayName={displayName}
       imageUrl={user.image ?? null}
       isPlatformAdmin={userIsPlatformAdmin}
+      unreadIdeaCount={unreadIdeaCount}
       nav={dict.nav}
       logoAlt={dict.home.titleAlt}
       locale={locale}

@@ -11,14 +11,15 @@ import { cn } from "@/lib/utils";
 type Props = {
   locale: Locale;
   labels: { english: string; turkish: string };
+  className?: string;
 };
 
 const options: { value: Locale; flag: string }[] = [
-  { value: "en", flag: "/flags/uk.svg" },
   { value: "tr", flag: "/flags/tr.svg" },
+  { value: "en", flag: "/flags/uk.svg" },
 ];
 
-export function LocaleSwitcher({ locale, labels }: Props) {
+export function LocaleSwitcher({ locale, labels, className }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [active, setActive] = useOptimistic(locale);
@@ -42,13 +43,16 @@ export function LocaleSwitcher({ locale, labels }: Props) {
       role="group"
       aria-label="Language"
       aria-busy={pending}
-      className="relative inline-grid h-8 w-[4.25rem] shrink-0 grid-cols-2 rounded-lg border border-zinc-200/90 bg-zinc-100/80 p-0.5 shadow-sm"
+      className={cn(
+        "relative inline-grid h-8 w-[4.25rem] shrink-0 grid-cols-2 rounded-lg border border-zinc-200/90 bg-zinc-100/80 p-0.5 shadow-sm",
+        className,
+      )}
     >
       <span
         aria-hidden
         className={cn(
           "pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-[5px] bg-white shadow-sm ring-1 ring-zinc-900/8 transition-transform duration-200 ease-out",
-          active === "tr" && "translate-x-full",
+          active === "en" && "translate-x-full",
           pending && "opacity-75",
         )}
       />

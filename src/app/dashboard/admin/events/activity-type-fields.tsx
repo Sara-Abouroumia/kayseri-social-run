@@ -2,14 +2,22 @@
 
 import { useState } from "react";
 
+import type { Messages } from "@/i18n/messages/en";
 import { EVENT_ACTIVITY_PRESETS } from "@/lib/event-activity-type";
+import { cn } from "@/lib/utils";
+
+type Copy = Messages["adminEventForm"];
 
 type Props = {
   initialLabel: string;
   initialEmoji: string;
-  /** Fires when the type name changes (typing or preset) for conditional form fields. */
+  copy: Copy;
   onLabelChange?: (label: string) => void;
 };
+
+function normLabel(s: string) {
+  return s.trim().toLowerCase().replace(/\s+/g, " ");
+}
 
 function labelClass() {
   return "block text-sm font-medium text-zinc-800";
@@ -19,7 +27,12 @@ function inputClass() {
   return "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900";
 }
 
-export function ActivityTypeFields({ initialLabel, initialEmoji, onLabelChange }: Props) {
+export function ActivityTypeFields({
+  initialLabel,
+  initialEmoji,
+  copy,
+  onLabelChange,
+}: Props) {
   const [label, setLabel] = useState(initialLabel);
   const [emoji, setEmoji] = useState(initialEmoji);
 
@@ -30,30 +43,41 @@ export function ActivityTypeFields({ initialLabel, initialEmoji, onLabelChange }
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-zinc-600">
-        Pick a template or enter your own name and emoji. Anything goes for custom
-        activities.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {EVENT_ACTIVITY_PRESETS.map((p) => (
-          <button
-            type="button"
-            key={`${p.emoji}-${p.label}`}
-            onClick={() => {
-              setLabelAndNotify(p.label);
-              setEmoji(p.emoji);
-            }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 shadow-sm hover:border-zinc-300 hover:bg-zinc-50"
-          >
-            <span aria-hidden>{p.emoji}</span>
-            {p.label}
-          </button>
-        ))}
+      <p className="text-xs text-zinc-600">{copy.activityPresetsHint}</p>
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label={copy.activityPresetsAria}
+      >
+        {EVENT_ACTIVITY_PRESETS.map((p) => {
+          const selected = normLabel(label) === normLabel(p.label);
+          const displayLabel = copy.presets[p.label] ?? p.label;
+          return (
+            <button
+              type="button"
+              key={`${p.emoji}-${p.label}`}
+              aria-pressed={selected}
+              onClick={() => {
+                setLabelAndNotify(p.label);
+                setEmoji(p.emoji);
+              }}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm transition",
+                selected
+                  ? "border-[#d91f06] bg-[#d91f06] text-white shadow-md ring-2 ring-[#d91f06]/20 hover:bg-[#c21b05]"
+                  : "border-zinc-200 bg-white text-zinc-800 hover:border-zinc-300 hover:bg-zinc-50",
+              )}
+            >
+              <span aria-hidden>{p.emoji}</span>
+              {displayLabel}
+            </button>
+          );
+        })}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className={labelClass()} htmlFor="activityType">
-            Type name
+            {copy.typeName}
           </label>
           <input
             id="activityType"
@@ -62,13 +86,13 @@ export function ActivityTypeFields({ initialLabel, initialEmoji, onLabelChange }
             maxLength={80}
             value={label}
             onChange={(e) => setLabelAndNotify(e.target.value)}
-            placeholder="e.g. Trail run, Club dinner…"
+            placeholder={copy.typeNamePlaceholder}
             className={`${inputClass()} mt-1`}
           />
         </div>
         <div>
           <label className={labelClass()} htmlFor="activityTypeEmoji">
-            Emoji (optional)
+            {copy.emojiOptional}
           </label>
           <input
             id="activityTypeEmoji"
@@ -81,7 +105,7 @@ export function ActivityTypeFields({ initialLabel, initialEmoji, onLabelChange }
             aria-describedby="activity-type-emoji-hint"
           />
           <p id="activity-type-emoji-hint" className="mt-1 text-xs text-zinc-500">
-            Leave blank to auto-match known types, or paste any emoji.
+            {copy.emojiHint}
           </p>
         </div>
       </div>

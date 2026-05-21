@@ -16,8 +16,15 @@ export type UploadedImage = {
   hint?: string;
 };
 
+export type UploadImageErrorCode =
+  | "bad_mime"
+  | "too_large_blob"
+  | "too_large_inline"
+  | "upload_failed";
+
 export type UploadImageError = {
   error: string;
+  code: UploadImageErrorCode;
   status: 400 | 500;
 };
 
@@ -48,6 +55,7 @@ export async function uploadImageFile(
     return {
       error:
         "Could not detect image type. Use JPEG, PNG, WebP, or GIF (some devices omit file type — try renaming to .jpg if needed).",
+      code: "bad_mime",
       status: 400,
     };
   }
@@ -58,6 +66,7 @@ export async function uploadImageFile(
     if (file.size > blobMax) {
       return {
         error: `Image must be ${Math.round(blobMax / (1024 * 1024))} MB or smaller.`,
+        code: "too_large_blob",
         status: 400,
       };
     }
@@ -76,13 +85,14 @@ export async function uploadImageFile(
     } catch (e) {
       const message = e instanceof Error ? e.message : "Upload failed.";
       console.error("[upload-image]", e);
-      return { error: message, status: 500 };
+      return { error: message, code: "upload_failed", status: 500 };
     }
   }
 
   if (file.size > inlineMax) {
     return {
-      error: `Without BLOB_READ_WRITE_TOKEN, use an image up to ${Math.round(inlineMax / 1024)} KB, or set BLOB_READ_WRITE_TOKEN for larger files (Vercel Blob).`,
+      error: `Image must be ${Math.round(inlineMax / 1024)} KB or smaller.`,
+      code: "too_large_inline",
       status: 400,
     };
   }
