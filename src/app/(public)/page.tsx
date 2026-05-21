@@ -28,7 +28,7 @@ export default async function Home() {
       runStats={{
         runsThisYear: clubRunStats.runsThisYear,
         totalKm: formatLandingStatValue(clubRunStats.totalKm),
-        yearsActive: clubRunStats.yearsActive,
+        // yearsActive: clubRunStats.yearsActive,
       }}
     />
   );

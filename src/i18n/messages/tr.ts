@@ -232,6 +232,9 @@ export const tr: Messages = {
     alreadyEmailedBody:
       "Bu adres için kaydı tamamlamanız gereken bir e-posta zaten gönderildi. Gelen kutunuzu (ve istenmeyen klasörünü) kontrol edip doğrulama bağlantısını kullanın.",
     alreadyEmailedDismiss: "Tamam",
+    resentVerificationTitle: "Yeni doğrulama e-postası gönderildi",
+    resentVerificationBody:
+      "Önceki doğrulama bağlantınızın süresi dolmuştu. Yeni bir e-posta gönderdik — gelen kutunuzu kontrol edip yeni bağlantıyla hesabınızı doğrulayın.",
     alreadyAccountTitle: "Hesap zaten var",
     alreadyAccountBody:
       "Bu e-posta zaten kayıtlı ve doğrulanmış. Yeni hesap açmak yerine şifrenizle giriş yapın.",

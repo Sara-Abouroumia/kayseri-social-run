@@ -231,6 +231,9 @@ export const en = {
     alreadyEmailedBody:
       "You already received an email to complete registration for this address. Open your inbox (and spam folder) and use the verification link in that message.",
     alreadyEmailedDismiss: "OK",
+    resentVerificationTitle: "New verification email sent",
+    resentVerificationBody:
+      "Your previous verification link had expired. We sent a fresh email — check your inbox and use the new link to verify your account.",
     alreadyAccountTitle: "Account already exists",
     alreadyAccountBody:
       "This email is already registered and verified. Sign in with your password instead of creating a new account.",

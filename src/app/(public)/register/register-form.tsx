@@ -1,15 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-import { authClient } from "@/lib/auth-client";
 import type { Messages } from "@/i18n/messages/en";
 import { cn } from "@/lib/utils";
 
-import { checkRegisterEmailAction } from "./register-actions";
+import { submitRegistrationAction } from "./register-actions";
 
 type RegisterFormProps = {
   inviteLockedEmail: string | null;
@@ -18,32 +16,11 @@ type RegisterFormProps = {
 };
 
 type RegisterResultDialog =
-  | { kind: "success"; adminInvite: boolean }
+  | { kind: "success"; adminInvite: boolean; resent?: boolean }
   | { kind: "error"; message: string }
   | { kind: "awaiting_verification" }
   | { kind: "already_active" }
   | { kind: "invite_mismatch"; expectedEmail: string };
-
-function isDuplicateSignupError(message: string | undefined): boolean {
-  if (!message) return false;
-  const m = message.toLowerCase();
-  return (
-    m.includes("already") ||
-    m.includes("exist") ||
-    m.includes("duplicate") ||
-    m.includes("unique")
-  );
-}
-
-function registerFailureMessage(err: unknown, fallback: string, networkFallback: string): string {
-  if (err instanceof TypeError) {
-    return networkFallback;
-  }
-  if (err instanceof Error && err.message.trim()) {
-    return err.message;
-  }
-  return fallback;
-}
 
 function RegisterResultModal({
   dialog,
@@ -64,7 +41,9 @@ function RegisterResultModal({
 
   const title =
     dialog.kind === "success"
-      ? copy.successTitle
+      ? dialog.resent
+        ? copy.resentVerificationTitle
+        : copy.successTitle
       : dialog.kind === "error"
         ? copy.errorTitle
         : dialog.kind === "invite_mismatch"
@@ -75,7 +54,9 @@ function RegisterResultModal({
 
   const body =
     dialog.kind === "success"
-      ? copy.checkInbox + (dialog.adminInvite ? ` ${copy.afterVerifyAdmin}` : "")
+      ? dialog.resent
+        ? copy.resentVerificationBody
+        : copy.checkInbox + (dialog.adminInvite ? ` ${copy.afterVerifyAdmin}` : "")
       : dialog.kind === "error"
         ? dialog.message
         : dialog.kind === "invite_mismatch"
@@ -146,7 +127,6 @@ function RegisterResultModal({
 }
 
 export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterFormProps) {
-  const router = useRouter();
   const genderOptions = useMemo(
     () =>
       [
@@ -176,89 +156,55 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
     setIsSubmitting(true);
 
     try {
-      if (inviteLockedEmail && email.trim().toLowerCase() !== inviteLockedEmail) {
-        setResultDialog({
-          kind: "invite_mismatch",
-          expectedEmail: inviteLockedEmail,
-        });
-        return;
-      }
-
-      const { status } = await checkRegisterEmailAction(email);
-      if (status === "awaiting_verification") {
-        setResultDialog({ kind: "awaiting_verification" });
-        return;
-      }
-      if (status === "already_active") {
-        setResultDialog({ kind: "already_active" });
-        return;
-      }
-
-      let signUpResult: Awaited<ReturnType<typeof authClient.signUp.email>>;
-      try {
-        signUpResult = await authClient.signUp.email({
+      const result = await submitRegistrationAction(
+        {
           name,
           email,
           password,
           gender,
           callbackURL: defaultNext,
-        } as Parameters<typeof authClient.signUp.email>[0] & { gender: typeof gender });
-      } catch (err) {
-        setResultDialog({
-          kind: "error",
-          message: registerFailureMessage(err, copy.errorGeneric, copy.errorNetwork),
-        });
-        return;
-      }
+        },
+        inviteLockedEmail,
+      );
 
-      const { error } = signUpResult;
-
-      if (error) {
-        if (isDuplicateSignupError(error.message)) {
-          const { status: retryStatus } = await checkRegisterEmailAction(email);
-          if (retryStatus === "awaiting_verification") {
-            setResultDialog({ kind: "awaiting_verification" });
-            return;
-          }
-          if (retryStatus === "already_active") {
-            setResultDialog({ kind: "already_active" });
-            return;
-          }
+      switch (result.outcome) {
+        case "verification_sent":
+          setResultDialog({
+            kind: "success",
+            adminInvite: Boolean(inviteLockedEmail),
+          });
+          break;
+        case "verification_resent":
+          setResultDialog({
+            kind: "success",
+            adminInvite: Boolean(inviteLockedEmail),
+            resent: true,
+          });
+          break;
+        case "pending_verification":
           setResultDialog({ kind: "awaiting_verification" });
-          return;
-        }
-        setResultDialog({
-          kind: "error",
-          message: error.message ?? copy.errorGeneric,
-        });
-        return;
+          break;
+        case "already_active":
+          setResultDialog({ kind: "already_active" });
+          break;
+        case "invite_mismatch":
+          setResultDialog({
+            kind: "invite_mismatch",
+            expectedEmail: inviteLockedEmail ?? email,
+          });
+          break;
+        case "error":
+        default:
+          setResultDialog({
+            kind: "error",
+            message: result.message ?? copy.errorGeneric,
+          });
+          break;
       }
-
-      let session: Awaited<ReturnType<typeof authClient.getSession>>;
-      try {
-        session = await authClient.getSession();
-      } catch (err) {
-        setResultDialog({
-          kind: "error",
-          message: registerFailureMessage(err, copy.errorGeneric, copy.errorNetwork),
-        });
-        return;
-      }
-
-      if (session.data?.user?.emailVerified) {
-        router.push(defaultNext);
-        router.refresh();
-        return;
-      }
-
-      setResultDialog({
-        kind: "success",
-        adminInvite: Boolean(inviteLockedEmail),
-      });
-    } catch (err) {
+    } catch {
       setResultDialog({
         kind: "error",
-        message: registerFailureMessage(err, copy.errorGeneric, copy.errorNetwork),
+        message: copy.errorNetwork,
       });
     } finally {
       setIsSubmitting(false);

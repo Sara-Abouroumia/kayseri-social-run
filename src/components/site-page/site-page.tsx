@@ -28,7 +28,7 @@ export type SitePageProps = {
   runStats: {
     runsThisYear: number;
     totalKm: { target: number; plus: boolean };
-    yearsActive: number;
+    // yearsActive: number; // hidden until club has a full calendar year of history
   };
 };
 
@@ -228,12 +228,13 @@ export async function SitePage({
   const memberCountLabel = `${memberCount.target}${memberCount.plus ? "+" : ""}`;
   const mediaTitle1 = t.media.titleLine1.replace("{count}", memberCountLabel);
   const statsBar = [
-    {
-      label: t.stats.members.label,
-      sub: t.stats.members.sub,
-      target: memberCount.target,
-      plus: memberCount.plus,
-    },
+    // Active members — hidden for now.
+    // {
+    //   label: t.stats.members.label,
+    //   sub: t.stats.members.sub,
+    //   target: memberCount.target,
+    //   plus: memberCount.plus,
+    // },
     {
       label: t.stats.runsPerYear.label,
       sub: t.stats.runsPerYear.sub,
@@ -246,12 +247,13 @@ export async function SitePage({
       target: runStats.totalKm.target,
       plus: runStats.totalKm.plus,
     },
-    {
-      label: t.stats.years.label,
-      sub: t.stats.years.sub,
-      target: runStats.yearsActive,
-      plus: false,
-    },
+    // Years of movement — hidden for now (shows “1” in 2026 even though we started mid-year).
+    // {
+    //   label: t.stats.years.label,
+    //   sub: t.stats.years.sub,
+    //   target: runStats.yearsActive,
+    //   plus: false,
+    // },
   ];
 
   return (

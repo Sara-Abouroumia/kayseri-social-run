@@ -4,6 +4,9 @@ import { and, eq, gt, isNull } from "drizzle-orm";
 
 import { db } from "@/db";
 import { platformAdminInvite } from "@/db/schema/platform-admin-invite";
+import { getLocale } from "@/i18n/get-locale";
+import { getTransactionalEmailCopy } from "@/i18n/messages/transactional-email";
+import { buildAdminInviteEmail } from "@/lib/email-templates";
 import { grantPlatformAdmin, isPlatformAdmin } from "@/lib/platform-admin";
 import { sendTransactionalEmail } from "@/lib/send-email";
 import { getSiteUrl } from "@/lib/site-url";
@@ -51,13 +54,6 @@ export async function getInviteEmailForRegisterToken(
   }
 }
 
-function escapeHtmlLite(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
 export async function createPlatformAdminInviteAndEmail(params: {
   email: string;
   invitedByUserId: string;
@@ -95,25 +91,20 @@ export async function createPlatformAdminInviteAndEmail(params: {
 
   const base = getSiteUrl();
   const registerUrl = `${base}/register?invite=${encodeURIComponent(rawToken)}`;
+  const locale = await getLocale();
+  const copy = getTransactionalEmailCopy(locale);
+  const message = buildAdminInviteEmail({
+    copy,
+    siteUrl: base,
+    registerUrl,
+    inviteEmail: email,
+  });
 
   sendTransactionalEmail({
     to: email,
-    subject: "Invitation: Kayseri Social Run admin access",
-    text: `You have been invited to register as a platform admin for Kayseri Social Run.
-
-Use this exact email when you create your account: ${email}
-
-Register here (link expires in 14 days):
-${registerUrl}
-
-After you sign up, you will receive a second email with a link to verify your email address. When you complete verification, admin access is turned on automatically.
-
-— Kayseri Social Run
-`,
-    html: `<p>You have been invited to register as a <strong>platform admin</strong> for Kayseri Social Run.</p>
-<p>Use this exact email when you create your account: <strong>${escapeHtmlLite(email)}</strong></p>
-<p><a href="${registerUrl}">Register here</a> (expires in 14 days)</p>
-<p>After you sign up, you will receive an email with a link to <strong>verify your email</strong>. When verification completes, admin access is enabled automatically.</p>`,
+    subject: message.subject,
+    text: message.text,
+    html: message.html,
   });
 
   return { ok: true };

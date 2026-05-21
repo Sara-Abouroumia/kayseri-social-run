@@ -4,6 +4,10 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { account, session, user, verification } from "@/db/schema/auth";
+import { getLocale } from "@/i18n/get-locale";
+import { getTransactionalEmailCopy } from "@/i18n/messages/transactional-email";
+import { buildVerificationEmail } from "@/lib/email-templates";
+import { countActiveVerificationTokensForEmail } from "@/lib/register-email-check";
 import { redeemPendingAdminInviteAfterEmailVerification } from "@/lib/platform-admin-invite";
 import { sendTransactionalEmail } from "@/lib/send-email";
 import { getAuthSecret, getSiteUrl, getTrustedOrigins } from "@/lib/site-url";
@@ -64,21 +68,24 @@ export const auth = betterAuth({
     sendOnSignIn: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
+      const activeTokenCount = await countActiveVerificationTokensForEmail(user.email);
+      if (activeTokenCount > 1) {
+        return;
+      }
+
+      const locale = await getLocale();
+      const copy = getTransactionalEmailCopy(locale);
+      const email = buildVerificationEmail({
+        copy,
+        siteUrl: baseURL,
+        verifyUrl: url,
+        recipientName: user.name,
+      });
       void sendTransactionalEmail({
         to: user.email,
-        subject: "Verify your email — Kayseri Social Run",
-        text: `Hi${user.name ? ` ${user.name}` : ""},
-
-Please verify your email address by opening this link (valid for a limited time):
-
-${url}
-
-If you did not create an account, you can ignore this message.
-
-— Kayseri Social Run
-${baseURL}
-`,
-        html: `<p>Please verify your email address:</p><p><a href="${url}">Verify email</a></p>`,
+        subject: email.subject,
+        text: email.text,
+        html: email.html,
       });
     },
     afterEmailVerification: async (verifiedUser) => {
