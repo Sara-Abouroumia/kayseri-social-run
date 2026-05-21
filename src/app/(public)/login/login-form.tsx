@@ -30,11 +30,19 @@ export function LoginForm({ defaultNext, copy }: LoginFormProps) {
     setIsSubmitting(true);
 
     try {
-      const { error } = await authClient.signIn.email({
-        email,
-        password,
-        callbackURL: defaultNext,
-      });
+      let signInResult: Awaited<ReturnType<typeof authClient.signIn.email>>;
+      try {
+        signInResult = await authClient.signIn.email({
+          email,
+          password,
+          callbackURL: defaultNext,
+        });
+      } catch {
+        setErrorMessage(copy.errorNetwork);
+        return;
+      }
+
+      const { error } = signInResult;
 
       if (error) {
         const status =
@@ -51,6 +59,8 @@ export function LoginForm({ defaultNext, copy }: LoginFormProps) {
 
       router.push(defaultNext);
       router.refresh();
+    } catch {
+      setErrorMessage(copy.errorNetwork);
     } finally {
       setIsSubmitting(false);
     }

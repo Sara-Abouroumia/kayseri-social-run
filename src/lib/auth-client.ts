@@ -1,12 +1,18 @@
 import { createAuthClient } from "better-auth/react";
 
-const publicAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
-
 /**
- * Point `NEXT_PUBLIC_APP_URL` at the same origin you use in the browser (e.g.
- * `http://localhost:3000` in dev). If it targets another host, sign-in / sign-out
- * requests go to the wrong place while the rest of the app is on this origin.
+ * Browser: always call `/api/auth` on the same host the user opened (fixes Vercel preview / UAT
+ * when NEXT_PUBLIC_APP_URL still points at production).
+ * Server bundle: fall back to NEXT_PUBLIC_APP_URL when present.
  */
-export const authClient = createAuthClient(
-  publicAppUrl ? { baseURL: publicAppUrl } : {},
-);
+function resolveAuthClientBaseUrl(): string | undefined {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
+  return configured || undefined;
+}
+
+const baseURL = resolveAuthClientBaseUrl();
+
+export const authClient = createAuthClient(baseURL ? { baseURL } : {});

@@ -6,14 +6,10 @@ import { db } from "@/db";
 import { account, session, user, verification } from "@/db/schema/auth";
 import { redeemPendingAdminInviteAfterEmailVerification } from "@/lib/platform-admin-invite";
 import { sendTransactionalEmail } from "@/lib/send-email";
-import {
-  getAuthSecret,
-  getExtraTrustedOrigins,
-  getSiteUrl,
-} from "@/lib/site-url";
+import { getAuthSecret, getSiteUrl, getTrustedOrigins } from "@/lib/site-url";
 
 const baseURL = getSiteUrl();
-const extraTrustedOrigins = getExtraTrustedOrigins();
+const trustedOrigins = getTrustedOrigins();
 const secret = getAuthSecret();
 
 export const auth = betterAuth({
@@ -21,9 +17,7 @@ export const auth = betterAuth({
 
   baseURL,
 
-  ...(extraTrustedOrigins.length > 0
-    ? { trustedOrigins: extraTrustedOrigins }
-    : {}),
+  trustedOrigins,
 
   user: {
     additionalFields: {

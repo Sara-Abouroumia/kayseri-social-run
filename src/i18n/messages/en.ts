@@ -196,6 +196,8 @@ export const en = {
     verifyFirst:
       "Please verify your email first. Open the link we sent you, then try signing in again.",
     signInFailed: "Sign in failed",
+    errorNetwork:
+      "We could not reach the server to sign you in. Check your connection and try again.",
   },
   register: {
     title: "Create account",
@@ -223,6 +225,8 @@ export const en = {
       "Check your inbox for a verification link. You must verify your email before you can sign in.",
     afterVerifyAdmin: "After verification, your admin access will turn on automatically.",
     errorGeneric: "Could not create account",
+    errorNetwork:
+      "We could not reach the server to finish registration. Check your connection and try again.",
     alreadyEmailedTitle: "Registration email already sent",
     alreadyEmailedBody:
       "You already received an email to complete registration for this address. Open your inbox (and spam folder) and use the verification link in that message.",

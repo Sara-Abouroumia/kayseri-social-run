@@ -197,6 +197,8 @@ export const tr: Messages = {
     verifyFirst:
       "Önce e-postanızı doğrulayın. Size gönderdiğimiz bağlantıyı açın, ardından tekrar giriş yapmayı deneyin.",
     signInFailed: "Giriş başarısız",
+    errorNetwork:
+      "Giriş tamamlanamadı — sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.",
   },
   register: {
     title: "Hesap oluştur",
@@ -224,6 +226,8 @@ export const tr: Messages = {
       "Gelen kutunuzu kontrol edin; doğrulama bağlantısı geldi. Giriş yapmadan önce e-postanızı doğrulamanız gerekir.",
     afterVerifyAdmin: "Doğrulamadan sonra yönetici erişiminiz otomatik olarak açılır.",
     errorGeneric: "Hesap oluşturulamadı",
+    errorNetwork:
+      "Kayıt tamamlanamadı — sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.",
     alreadyEmailedTitle: "Kayıt e-postası zaten gönderildi",
     alreadyEmailedBody:
       "Bu adres için kaydı tamamlamanız gereken bir e-posta zaten gönderildi. Gelen kutunuzu (ve istenmeyen klasörünü) kontrol edip doğrulama bağlantısını kullanın.",

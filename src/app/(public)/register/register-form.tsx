@@ -35,6 +35,16 @@ function isDuplicateSignupError(message: string | undefined): boolean {
   );
 }
 
+function registerFailureMessage(err: unknown, fallback: string, networkFallback: string): string {
+  if (err instanceof TypeError) {
+    return networkFallback;
+  }
+  if (err instanceof Error && err.message.trim()) {
+    return err.message;
+  }
+  return fallback;
+}
+
 function RegisterResultModal({
   dialog,
   copy,
@@ -184,13 +194,24 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
         return;
       }
 
-      const { error } = await authClient.signUp.email({
-        name,
-        email,
-        password,
-        gender,
-        callbackURL: defaultNext,
-      } as Parameters<typeof authClient.signUp.email>[0] & { gender: typeof gender });
+      let signUpResult: Awaited<ReturnType<typeof authClient.signUp.email>>;
+      try {
+        signUpResult = await authClient.signUp.email({
+          name,
+          email,
+          password,
+          gender,
+          callbackURL: defaultNext,
+        } as Parameters<typeof authClient.signUp.email>[0] & { gender: typeof gender });
+      } catch (err) {
+        setResultDialog({
+          kind: "error",
+          message: registerFailureMessage(err, copy.errorGeneric, copy.errorNetwork),
+        });
+        return;
+      }
+
+      const { error } = signUpResult;
 
       if (error) {
         if (isDuplicateSignupError(error.message)) {
@@ -213,7 +234,17 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
         return;
       }
 
-      const session = await authClient.getSession();
+      let session: Awaited<ReturnType<typeof authClient.getSession>>;
+      try {
+        session = await authClient.getSession();
+      } catch (err) {
+        setResultDialog({
+          kind: "error",
+          message: registerFailureMessage(err, copy.errorGeneric, copy.errorNetwork),
+        });
+        return;
+      }
+
       if (session.data?.user?.emailVerified) {
         router.push(defaultNext);
         router.refresh();
@@ -223,6 +254,11 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
       setResultDialog({
         kind: "success",
         adminInvite: Boolean(inviteLockedEmail),
+      });
+    } catch (err) {
+      setResultDialog({
+        kind: "error",
+        message: registerFailureMessage(err, copy.errorGeneric, copy.errorNetwork),
       });
     } finally {
       setIsSubmitting(false);
