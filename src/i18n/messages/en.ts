@@ -206,7 +206,12 @@ export const en = {
     genderHint:
       "Used only for anonymous group stats on activities you join. You choose this once in profile settings.",
     creating: "Creating account…",
+    processing: "Processing…",
     submit: "Register",
+    dialogDismiss: "OK",
+    successTitle: "Check your email",
+    errorTitle: "Registration failed",
+    inviteMismatchTitle: "Wrong invitation email",
     hasAccount: "Already have an account?",
     login: "Login",
     goToLogin: "Go to login",

@@ -207,7 +207,12 @@ export const tr: Messages = {
     genderHint:
       "Yalnızca katıldığınız etkinliklerde anonim grup istatistikleri için kullanılır. Bunu profil ayarlarında bir kez seçersiniz.",
     creating: "Hesap oluşturuluyor…",
+    processing: "İşleniyor…",
     submit: "Kayıt ol",
+    dialogDismiss: "Tamam",
+    successTitle: "E-postanızı kontrol edin",
+    errorTitle: "Kayıt başarısız",
+    inviteMismatchTitle: "Davet e-postası uyuşmuyor",
     hasAccount: "Zaten hesabınız var mı?",
     login: "Giriş",
     goToLogin: "Girişe git",

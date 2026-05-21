@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 import type { Messages } from "@/i18n/messages/en";
+import { cn } from "@/lib/utils";
 
 import { checkRegisterEmailAction } from "./register-actions";
 
@@ -15,7 +17,12 @@ type RegisterFormProps = {
   copy: Messages["register"];
 };
 
-type DuplicateDialogKind = "awaiting_verification" | "already_active";
+type RegisterResultDialog =
+  | { kind: "success"; adminInvite: boolean }
+  | { kind: "error"; message: string }
+  | { kind: "awaiting_verification" }
+  | { kind: "already_active" }
+  | { kind: "invite_mismatch"; expectedEmail: string };
 
 function isDuplicateSignupError(message: string | undefined): boolean {
   if (!message) return false;
@@ -25,6 +32,106 @@ function isDuplicateSignupError(message: string | undefined): boolean {
     m.includes("exist") ||
     m.includes("duplicate") ||
     m.includes("unique")
+  );
+}
+
+function RegisterResultModal({
+  dialog,
+  copy,
+  loginHref,
+  onClose,
+}: {
+  dialog: RegisterResultDialog;
+  copy: Messages["register"];
+  loginHref: string;
+  onClose: () => void;
+}) {
+  const isSuccess = dialog.kind === "success";
+  const showLogin =
+    dialog.kind === "success" ||
+    dialog.kind === "already_active" ||
+    dialog.kind === "awaiting_verification";
+
+  const title =
+    dialog.kind === "success"
+      ? copy.successTitle
+      : dialog.kind === "error"
+        ? copy.errorTitle
+        : dialog.kind === "invite_mismatch"
+          ? copy.inviteMismatchTitle
+          : dialog.kind === "already_active"
+            ? copy.alreadyAccountTitle
+            : copy.alreadyEmailedTitle;
+
+  const body =
+    dialog.kind === "success"
+      ? copy.checkInbox + (dialog.adminInvite ? ` ${copy.afterVerifyAdmin}` : "")
+      : dialog.kind === "error"
+        ? dialog.message
+        : dialog.kind === "invite_mismatch"
+          ? `${copy.inviteEmailUse} (${dialog.expectedEmail}) ${copy.inviteEmailSuffix}`
+          : dialog.kind === "already_active"
+            ? copy.alreadyAccountBody
+            : copy.alreadyEmailedBody;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className={cn(
+          "max-w-md rounded-lg border bg-white p-6 shadow-lg",
+          isSuccess ? "border-emerald-200" : "border-zinc-200",
+        )}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="register-result-title"
+        aria-describedby="register-result-body"
+      >
+        <h2
+          id="register-result-title"
+          className={cn(
+            "text-lg font-semibold",
+            isSuccess ? "text-emerald-950" : "text-zinc-900",
+          )}
+        >
+          {title}
+        </h2>
+        <p
+          id="register-result-body"
+          className={cn(
+            "mt-2 text-sm leading-relaxed",
+            isSuccess ? "text-emerald-900" : "text-zinc-600",
+          )}
+        >
+          {body}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+          {showLogin ? (
+            <Link
+              href={loginHref}
+              className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+            >
+              {dialog.kind === "already_active" ? copy.login : copy.goToLogin}
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            onClick={onClose}
+            className={cn(
+              "rounded-md px-4 py-2 text-sm font-medium text-white",
+              isSuccess ? "bg-emerald-700 hover:bg-emerald-800" : "bg-zinc-900 hover:bg-zinc-800",
+            )}
+          >
+            {copy.dialogDismiss}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -43,9 +150,7 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
   const [email, setEmail] = useState(inviteLockedEmail ?? "");
   const [password, setPassword] = useState("");
   const [gender, setGender] = useState<(typeof genderOptions)[number]["value"]>("female");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [duplicateDialog, setDuplicateDialog] = useState<DuplicateDialogKind | null>(null);
+  const [resultDialog, setResultDialog] = useState<RegisterResultDialog | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loginHref =
@@ -53,33 +158,29 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
       ? "/login"
       : `/login?next=${encodeURIComponent(defaultNext)}`;
 
-  function openDuplicateDialog(kind: DuplicateDialogKind) {
-    setDuplicateDialog(kind);
-    setErrorMessage(null);
-  }
+  const registrationComplete = resultDialog?.kind === "success";
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    setDuplicateDialog(null);
+    setResultDialog(null);
     setIsSubmitting(true);
 
     try {
       if (inviteLockedEmail && email.trim().toLowerCase() !== inviteLockedEmail) {
-        setErrorMessage(
-          `${copy.inviteEmailUse} (${inviteLockedEmail}) ${copy.inviteEmailSuffix}`,
-        );
+        setResultDialog({
+          kind: "invite_mismatch",
+          expectedEmail: inviteLockedEmail,
+        });
         return;
       }
 
       const { status } = await checkRegisterEmailAction(email);
       if (status === "awaiting_verification") {
-        openDuplicateDialog("awaiting_verification");
+        setResultDialog({ kind: "awaiting_verification" });
         return;
       }
       if (status === "already_active") {
-        openDuplicateDialog("already_active");
+        setResultDialog({ kind: "already_active" });
         return;
       }
 
@@ -95,17 +196,20 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
         if (isDuplicateSignupError(error.message)) {
           const { status: retryStatus } = await checkRegisterEmailAction(email);
           if (retryStatus === "awaiting_verification") {
-            openDuplicateDialog("awaiting_verification");
+            setResultDialog({ kind: "awaiting_verification" });
             return;
           }
           if (retryStatus === "already_active") {
-            openDuplicateDialog("already_active");
+            setResultDialog({ kind: "already_active" });
             return;
           }
-          openDuplicateDialog("awaiting_verification");
+          setResultDialog({ kind: "awaiting_verification" });
           return;
         }
-        setErrorMessage(error.message ?? copy.errorGeneric);
+        setResultDialog({
+          kind: "error",
+          message: error.message ?? copy.errorGeneric,
+        });
         return;
       }
 
@@ -116,26 +220,14 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
         return;
       }
 
-      setSuccessMessage(
-        copy.checkInbox + (inviteLockedEmail ? ` ${copy.afterVerifyAdmin}` : ""),
-      );
+      setResultDialog({
+        kind: "success",
+        adminInvite: Boolean(inviteLockedEmail),
+      });
     } finally {
       setIsSubmitting(false);
     }
   }
-
-  const dialogCopy =
-    duplicateDialog === "already_active"
-      ? {
-          title: copy.alreadyAccountTitle,
-          body: copy.alreadyAccountBody,
-        }
-      : duplicateDialog === "awaiting_verification"
-        ? {
-            title: copy.alreadyEmailedTitle,
-            body: copy.alreadyEmailedBody,
-          }
-        : null;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-white px-6">
@@ -147,138 +239,90 @@ export function RegisterForm({ inviteLockedEmail, defaultNext, copy }: RegisterF
         </p>
       ) : null}
 
-      {duplicateDialog && dialogCopy ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="presentation"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setDuplicateDialog(null);
-          }}
-        >
-          <div
-            className="max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-lg"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="register-duplicate-title"
-            aria-describedby="register-duplicate-body"
-          >
-            <h2
-              id="register-duplicate-title"
-              className="text-lg font-semibold text-zinc-900"
-            >
-              {dialogCopy.title}
-            </h2>
-            <p id="register-duplicate-body" className="mt-2 text-sm leading-relaxed text-zinc-600">
-              {dialogCopy.body}
-            </p>
-            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
-              {duplicateDialog === "already_active" ? (
-                <Link
-                  href={loginHref}
-                  className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
-                >
-                  {copy.login}
-                </Link>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setDuplicateDialog(null)}
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-              >
-                {copy.alreadyEmailedDismiss}
-              </button>
-            </div>
-          </div>
-        </div>
+      {resultDialog ? (
+        <RegisterResultModal
+          dialog={resultDialog}
+          copy={copy}
+          loginHref={loginHref}
+          onClose={() => setResultDialog(null)}
+        />
       ) : null}
 
       <form onSubmit={(e) => void handleRegister(e)} className="space-y-4">
-        {errorMessage ? (
-          <p
-            className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-            role="alert"
-          >
-            {errorMessage}
-          </p>
-        ) : null}
-
-        {successMessage ? (
-          <p
-            className="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900"
-            role="status"
-          >
-            {successMessage}{" "}
-            <Link href={loginHref} className="font-medium underline">
-              {copy.goToLogin}
-            </Link>
-          </p>
-        ) : null}
-
-        <input
-          className="w-full rounded border p-3"
-          placeholder={copy.name}
-          autoComplete="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          disabled={!!successMessage}
-        />
-
-        <input
-          className="w-full rounded border p-3"
-          placeholder={copy.email}
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => {
-            if (!inviteLockedEmail) setEmail(e.target.value);
-          }}
-          readOnly={!!inviteLockedEmail}
-          required
-          disabled={!!successMessage}
-        />
-
-        <div>
-          <label htmlFor="gender" className="mb-1 block text-sm font-medium text-zinc-800">
-            {copy.gender}
-          </label>
-          <select
-            id="gender"
+        <fieldset
+          disabled={isSubmitting || registrationComplete}
+          className="space-y-4 disabled:opacity-70"
+        >
+          <input
             className="w-full rounded border p-3"
-            value={gender}
-            onChange={(e) =>
-              setGender(e.target.value as (typeof genderOptions)[number]["value"])
-            }
+            placeholder={copy.name}
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             required
-            disabled={!!successMessage}
-          >
-            {genderOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-zinc-500">{copy.genderHint}</p>
-        </div>
+          />
 
-        <input
-          className="w-full rounded border p-3"
-          placeholder={copy.password}
-          type="password"
-          autoComplete="new-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={8}
-          disabled={!!successMessage}
-        />
+          <input
+            className="w-full rounded border p-3"
+            placeholder={copy.email}
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => {
+              if (!inviteLockedEmail) setEmail(e.target.value);
+            }}
+            readOnly={!!inviteLockedEmail}
+            required
+          />
+
+          <div>
+            <label htmlFor="gender" className="mb-1 block text-sm font-medium text-zinc-800">
+              {copy.gender}
+            </label>
+            <select
+              id="gender"
+              className="w-full rounded border p-3"
+              value={gender}
+              onChange={(e) =>
+                setGender(e.target.value as (typeof genderOptions)[number]["value"])
+              }
+              required
+            >
+              {genderOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-zinc-500">{copy.genderHint}</p>
+          </div>
+
+          <input
+            className="w-full rounded border p-3"
+            placeholder={copy.password}
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={8}
+          />
+        </fieldset>
 
         <button
           type="submit"
-          disabled={isSubmitting || !!successMessage}
-          className="w-full rounded bg-black p-3 text-white disabled:opacity-60"
+          disabled={isSubmitting || registrationComplete}
+          className="flex w-full items-center justify-center gap-2 rounded bg-black p-3 text-white disabled:opacity-60"
+          aria-busy={isSubmitting}
         >
-          {isSubmitting ? copy.creating : copy.submit}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              <span>{copy.processing}</span>
+            </>
+          ) : (
+            copy.submit
+          )}
         </button>
       </form>
 
