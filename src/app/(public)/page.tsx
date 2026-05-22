@@ -1,23 +1,14 @@
 import { SitePage } from "@/components/site-page";
 import { getClubInstagramUrl, getClubWhatsAppUrl } from "@/lib/club-social-links";
-import {
-  formatLandingStatValue,
-  getClubRunStats,
-} from "@/lib/club-run-stats";
-import {
-  formatMemberCountForDisplay,
-  getRegisteredUserCount,
-} from "@/lib/member-stats";
-import { getPublicUpcomingEvents } from "@/lib/upcoming-events";
+import { formatLandingStatValue } from "@/lib/club-run-stats";
+import { loadHomePageData } from "@/lib/home-page-data";
+import { formatMemberCountForDisplay } from "@/lib/member-stats";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [upcomingEvents, registeredUserCount, clubRunStats] = await Promise.all([
-    getPublicUpcomingEvents(4),
-    getRegisteredUserCount(),
-    getClubRunStats(),
-  ]);
+  const { upcomingEvents, registeredUserCount, clubRunStats } =
+    await loadHomePageData();
 
   return (
     <SitePage

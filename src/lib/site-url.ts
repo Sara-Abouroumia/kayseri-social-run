@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+
 function vercelHostToOrigin(host: string): string {
   const cleaned = host.replace(/^https?:\/\//, "");
   return `https://${stripTrailingSlash(cleaned)}`;
@@ -36,15 +38,60 @@ export function getExtraTrustedOrigins(): string[] {
   return raw.map((s) => stripTrailingSlash(s.trim())).filter(Boolean);
 }
 
+/** Add www / apex pairs so production works on both hostnames. */
+function addOriginWithAliases(set: Set<string>, origin: string): void {
+  const normalized = stripTrailingSlash(origin);
+  set.add(normalized);
+  try {
+    const url = new URL(normalized);
+    if (url.hostname === "localhost" || url.hostname.endsWith(".localhost")) {
+      return;
+    }
+    if (url.hostname.startsWith("www.")) {
+      set.add(`${url.protocol}//${url.hostname.slice(4)}`);
+    } else {
+      set.add(`${url.protocol}//www.${url.hostname}`);
+    }
+  } catch {
+    /* ignore invalid URL */
+  }
+}
+
+/** Origin of the current request (browser host), or canonical site URL as fallback. */
+export async function getRequestOrigin(): Promise<string> {
+  try {
+    const h = await headers();
+    const host =
+      h.get("x-forwarded-host")?.split(",")[0]?.trim() ?? h.get("host")?.trim();
+    if (host) {
+      const proto =
+        h.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "https";
+      return stripTrailingSlash(`${proto}://${host}`);
+    }
+  } catch {
+    /* outside a request */
+  }
+  return getSiteUrl();
+}
+
 /** `baseURL` plus env extras and current Vercel deployment host(s). */
 export function getTrustedOrigins(): string[] {
-  const origins = new Set<string>([getSiteUrl(), ...getExtraTrustedOrigins()]);
+  const origins = new Set<string>();
+
+  for (const origin of [
+    getSiteUrl(),
+    ...getExtraTrustedOrigins(),
+  ]) {
+    addOriginWithAliases(origins, origin);
+  }
 
   const branchUrl = process.env.VERCEL_BRANCH_URL?.trim();
-  if (branchUrl) origins.add(vercelHostToOrigin(branchUrl));
+  if (branchUrl) addOriginWithAliases(origins, vercelHostToOrigin(branchUrl));
 
   const productionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-  if (productionUrl) origins.add(vercelHostToOrigin(productionUrl));
+  if (productionUrl) {
+    addOriginWithAliases(origins, vercelHostToOrigin(productionUrl));
+  }
 
   return [...origins];
 }

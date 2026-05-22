@@ -7,7 +7,7 @@ import {
   deleteExpiredVerificationsForEmail,
   getRegisterEmailStatus,
 } from "@/lib/register-email-check";
-import { getSiteUrl } from "@/lib/site-url";
+import { getRequestOrigin } from "@/lib/site-url";
 
 const emailSchema = z.string().trim().email();
 const genderSchema = z.enum(["female", "male"]);
@@ -49,12 +49,14 @@ export async function checkRegisterEmailAction(
 async function authFetch(path: string, body: Record<string, unknown>): Promise<Response> {
   const h = await headers();
   const cookie = h.get("cookie") ?? "";
-  const origin = getSiteUrl();
+  const origin = await getRequestOrigin();
 
   return fetch(`${origin}/api/auth${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Origin: origin,
+      Referer: `${origin}/`,
       ...(cookie ? { cookie } : {}),
     },
     body: JSON.stringify(body),
