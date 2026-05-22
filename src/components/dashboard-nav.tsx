@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   CalendarDays,
   Home,
   LayoutDashboard,
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 type DashboardNavProps = {
   nav: Messages["nav"];
   isPlatformAdmin: boolean;
+  isPlatformDeveloper?: boolean;
   unreadIdeaCount?: number;
   className?: string;
   /** Vertical stack for mobile drawer; default is horizontal toolbar. */
@@ -103,6 +105,7 @@ function DashboardNavLink({
 export function DashboardNav({
   nav,
   isPlatformAdmin,
+  isPlatformDeveloper = false,
   unreadIdeaCount = 0,
   className,
   variant = "toolbar",
@@ -148,6 +151,17 @@ export function DashboardNav({
       icon: Settings,
       isActive: (p) => p.startsWith("/dashboard/admin/system"),
     },
+    ...(isPlatformDeveloper
+      ? [
+          {
+            href: "/dashboard/admin/developer/analytics",
+            label: nav.developerUsage,
+            icon: BarChart3,
+            isActive: (p: string) =>
+              p.startsWith("/dashboard/admin/developer"),
+          },
+        ]
+      : []),
     // Admin site page builder (landing blocks) — temporarily hidden
     // {
     //   href: "/dashboard/admin/about",

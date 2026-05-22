@@ -7,3 +7,4 @@ export * from "./event-registration";
 export * from "./platform-admin";
 export * from "./platform-admin-invite";
 export * from "./site-about";
+export * from "./usage-analytics";

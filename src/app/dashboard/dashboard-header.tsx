@@ -22,6 +22,7 @@ type DashboardHeaderProps = {
   displayName: string;
   imageUrl: string | null;
   isPlatformAdmin: boolean;
+  isPlatformDeveloper?: boolean;
   unreadIdeaCount?: number;
   nav: Messages["nav"];
   logoAlt: string;
@@ -35,6 +36,7 @@ export function DashboardHeader({
   displayName,
   imageUrl,
   isPlatformAdmin,
+  isPlatformDeveloper = false,
   unreadIdeaCount = 0,
   nav,
   logoAlt,
@@ -69,6 +71,7 @@ export function DashboardHeader({
               localeLabels={localeLabels}
               weatherLabels={weatherLabels}
               isPlatformAdmin={isPlatformAdmin}
+              isPlatformDeveloper={isPlatformDeveloper}
               unreadIdeaCount={unreadIdeaCount}
             />
           </div>
@@ -119,6 +122,7 @@ export function DashboardHeader({
             <DashboardNav
               nav={nav}
               isPlatformAdmin={isPlatformAdmin}
+              isPlatformDeveloper={isPlatformDeveloper}
               unreadIdeaCount={unreadIdeaCount}
               className={cn(bottomRowClass, "min-w-0 gap-0.5 overflow-x-auto")}
             />

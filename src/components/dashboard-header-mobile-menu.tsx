@@ -14,6 +14,7 @@ type DashboardHeaderMobileMenuProps = {
   localeLabels: { english: string; turkish: string };
   weatherLabels: Messages["navWeather"];
   isPlatformAdmin: boolean;
+  isPlatformDeveloper?: boolean;
   unreadIdeaCount?: number;
 };
 
@@ -23,6 +24,7 @@ export function DashboardHeaderMobileMenu({
   localeLabels,
   weatherLabels,
   isPlatformAdmin,
+  isPlatformDeveloper = false,
   unreadIdeaCount = 0,
 }: DashboardHeaderMobileMenuProps) {
   const showMenuBadge = isPlatformAdmin && unreadIdeaCount > 0;
@@ -42,6 +44,7 @@ export function DashboardHeaderMobileMenu({
       <DashboardNav
         nav={nav}
         isPlatformAdmin={isPlatformAdmin}
+        isPlatformDeveloper={isPlatformDeveloper}
         unreadIdeaCount={unreadIdeaCount}
         variant="drawer"
       />

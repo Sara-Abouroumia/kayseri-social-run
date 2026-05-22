@@ -65,6 +65,25 @@ export default async function AdminSystemPage() {
         </p>
       </div>
 
+      {isDeveloper ? (
+        <section className="mb-10 rounded-lg border border-violet-200 bg-violet-50/80 p-6 shadow-sm">
+          <h2 className="text-lg font-medium text-zinc-900">
+            {dict.developerAnalytics.title}
+          </h2>
+          <p className="mt-1 text-sm text-zinc-600">
+            {dict.developerAnalytics.subtitle}
+          </p>
+          <div className="mt-4">
+            <Link
+              href="/dashboard/admin/developer/analytics"
+              className="inline-flex rounded-md bg-violet-900 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800"
+            >
+              {dict.nav.developerUsage}
+            </Link>
+          </div>
+        </section>
+      ) : null}
+
       <div className="mb-10 flex flex-wrap items-stretch gap-6">
         <section
           className="min-w-[min(100%,17rem)] flex-1 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm"

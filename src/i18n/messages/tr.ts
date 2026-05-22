@@ -2,6 +2,7 @@ import type { Messages } from "./en";
 import { adminEventFormTr } from "./admin-event-form";
 import { eventStatsTr } from "./event-stats";
 import { ideaBoxTr } from "./idea-box";
+import { developerAnalyticsTr } from "./developer-analytics";
 import { systemAdminTr } from "./system-admin";
 import { landingPageTr } from "./landing-page";
 
@@ -25,6 +26,7 @@ export const tr: Messages = {
     editLanding: "Kayseri Social Run",
     editSiteNav: "Site",
     adminSection: "Yönetim",
+    developerUsage: "Kullanım (geliştirici)",
     profileSettings: "Profil ayarları",
     menu: "Menü",
     openMenu: "Menüyü aç",
@@ -47,6 +49,7 @@ export const tr: Messages = {
   eventStats: eventStatsTr,
   ideaBox: ideaBoxTr,
   systemAdmin: systemAdminTr,
+  developerAnalytics: developerAnalyticsTr,
   aboutEditor: {
     title: "Kayseri Social Run",
     blurb:

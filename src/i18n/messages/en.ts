@@ -1,6 +1,10 @@
 import { adminEventFormEn, type AdminEventFormCopy } from "./admin-event-form";
 import { eventStatsEn, type EventStatsCopy } from "./event-stats";
 import { ideaBoxEn, type IdeaBoxCopy } from "./idea-box";
+import {
+  developerAnalyticsEn,
+  type DeveloperAnalyticsCopy,
+} from "./developer-analytics";
 import { systemAdminEn, type SystemAdminCopy } from "./system-admin";
 import { landingPageEn } from "./landing-page";
 
@@ -25,6 +29,7 @@ export const en = {
     /** Short label for dashboard nav (full name in `title` tooltip). */
     editSiteNav: "Site",
     adminSection: "Administration",
+    developerUsage: "Usage (dev)",
     profileSettings: "Profile settings",
     menu: "Menu",
     openMenu: "Open menu",
@@ -47,6 +52,7 @@ export const en = {
   eventStats: eventStatsEn,
   ideaBox: ideaBoxEn,
   systemAdmin: systemAdminEn,
+  developerAnalytics: developerAnalyticsEn,
   aboutEditor: {
     title: "Kayseri Social Run",
     blurb:
@@ -347,10 +353,11 @@ export const en = {
 
 export type Messages = Omit<
   typeof en,
-  "adminEventForm" | "eventStats" | "ideaBox" | "systemAdmin"
+  "adminEventForm" | "eventStats" | "ideaBox" | "systemAdmin" | "developerAnalytics"
 > & {
   adminEventForm: AdminEventFormCopy;
   eventStats: EventStatsCopy;
   ideaBox: IdeaBoxCopy;
   systemAdmin: SystemAdminCopy;
+  developerAnalytics: DeveloperAnalyticsCopy;
 };

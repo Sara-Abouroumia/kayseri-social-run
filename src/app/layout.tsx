@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
-
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { UsagePageTracker } from "@/components/usage-page-tracker";
 import { getLocale } from "@/i18n/get-locale";
 import { getSiteUrl } from "@/lib/site-url";
 
@@ -38,6 +40,7 @@ export default async function RootLayout({
 
   return (
     <>
+      <SpeedInsights />
       <Analytics />
       <html
         lang={locale}
@@ -45,6 +48,9 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <body className="flex min-h-full min-w-0 flex-col" suppressHydrationWarning>
+          <Suspense fallback={null}>
+            <UsagePageTracker />
+          </Suspense>
           {children}
         </body>
       </html>
