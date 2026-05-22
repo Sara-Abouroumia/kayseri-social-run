@@ -6,6 +6,7 @@ import type { Locale } from "@/i18n/config";
 import type { KayseriWeatherPayload } from "@/lib/kayseri-weather";
 import { getWeatherDescription } from "@/lib/weather-wmo-description";
 import { getWeatherIconMeta } from "@/lib/weather-wmo-icon";
+import { SITE_TIME_ZONE } from "@/lib/site-timezone";
 import { cn } from "@/lib/utils";
 
 type Labels = {
@@ -24,14 +25,12 @@ type Props = {
   forceFull?: boolean;
 };
 
-const TIME_ZONE = "Europe/Istanbul";
-
 const shellClass =
   "flex min-w-0 shrink items-center gap-2 text-sm leading-tight text-zinc-700 @min-[26rem]/topbar:gap-2.5";
 
 function formatKayseriTime(locale: Locale, date: Date) {
   return new Intl.DateTimeFormat(locale === "tr" ? "tr-TR" : "en-GB", {
-    timeZone: TIME_ZONE,
+    timeZone: SITE_TIME_ZONE,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

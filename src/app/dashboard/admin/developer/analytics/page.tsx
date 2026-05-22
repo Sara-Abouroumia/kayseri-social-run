@@ -9,6 +9,7 @@ import { requirePlatformDeveloper } from "@/lib/require-platform-developer";
 import {
   getLocationMapPoints,
   getRecentPageViews,
+  getTopDevices,
   getTopLocations,
   getTopPages,
   getTopPagesByTime,
@@ -46,13 +47,14 @@ export default async function DeveloperAnalyticsPage() {
     );
   }
 
-  const [overview, mapPoints, topPages, topByTime, topLocations, recent] =
+  const [overview, mapPoints, topPages, topByTime, topLocations, topDevices, recent] =
     await Promise.all([
       getUsageOverview(PERIOD_DAYS),
       getLocationMapPoints(PERIOD_DAYS, 40),
       getTopPages(PERIOD_DAYS, 12),
       getTopPagesByTime(PERIOD_DAYS, 10),
       getTopLocations(PERIOD_DAYS, 12),
+      getTopDevices(PERIOD_DAYS, 10),
       getRecentPageViews(60),
     ]);
 
@@ -67,6 +69,7 @@ export default async function DeveloperAnalyticsPage() {
         topPages={topPages}
         topByTime={topByTime}
         topLocations={topLocations}
+        topDevices={topDevices}
         recent={recent}
       />
     </main>

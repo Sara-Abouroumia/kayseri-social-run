@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { user } from "@/db/schema/auth";
 import { usagePageViews } from "@/db/schema/usage-analytics";
 import { resolveGeoCoordinates } from "@/lib/geo-coordinates";
+import { parseUserAgent } from "@/lib/parse-user-agent";
 import type { ClientRequestInfo } from "@/lib/request-client-info";
 import { formatLocationLabel } from "@/lib/request-client-info";
 
@@ -146,6 +147,12 @@ export type TopLocationRow = {
   uniqueVisitors: number;
 };
 
+export type TopDeviceRow = {
+  device: string;
+  views: number;
+  uniqueVisitors: number;
+};
+
 export type LocationMapPoint = {
   id: string;
   lat: number;
@@ -190,6 +197,46 @@ export async function getTopLocations(
     views: Number(row.views),
     uniqueVisitors: Number(row.uniqueVisitors),
   }));
+}
+
+/** Devices / browsers from User-Agent strings (merged by parsed label). */
+export async function getTopDevices(
+  days: number,
+  limit = 10,
+): Promise<TopDeviceRow[]> {
+  const since = sinceDays(days);
+
+  const rows = await db
+    .select({
+      userAgent: usagePageViews.userAgent,
+      views: count(),
+      uniqueVisitors: sql<number>`count(distinct ${usagePageViews.visitorId})`.mapWith(
+        Number,
+      ),
+    })
+    .from(usagePageViews)
+    .where(gte(usagePageViews.createdAt, since))
+    .groupBy(usagePageViews.userAgent)
+    .orderBy(desc(count()));
+
+  const merged = new Map<string, TopDeviceRow>();
+
+  for (const row of rows) {
+    const { label } = parseUserAgent(row.userAgent);
+    const views = Number(row.views);
+    const uniqueVisitors = Number(row.uniqueVisitors);
+    const prev = merged.get(label);
+    if (prev) {
+      prev.views += views;
+      prev.uniqueVisitors += uniqueVisitors;
+    } else {
+      merged.set(label, { device: label, views, uniqueVisitors });
+    }
+  }
+
+  return [...merged.values()]
+    .sort((a, b) => b.views - a.views)
+    .slice(0, limit);
 }
 
 /** Aggregated dots for the visitor map (city when known, else country centroid). */
@@ -258,6 +305,7 @@ export type RecentPageViewRow = {
   userEmail: string | null;
   ipAddress: string | null;
   location: string;
+  device: string;
   userAgent: string | null;
 };
 
@@ -284,24 +332,28 @@ export async function getRecentPageViews(limit = 80): Promise<RecentPageViewRow[
     .orderBy(desc(usagePageViews.createdAt))
     .limit(limit);
 
-  return rows.map((row) => ({
-    id: row.id,
-    createdAt: row.createdAt,
-    pathname: row.pathname,
-    referrer: row.referrer,
-    durationMs: row.durationMs,
-    visitorId: row.visitorId,
-    userId: row.userId,
-    userName: row.userName,
-    userEmail: row.userEmail,
-    ipAddress: row.ipAddress,
-    location: formatLocationLabel({
-      city: row.city,
-      region: row.region,
-      country: row.country,
-    }),
-    userAgent: row.userAgent,
-  }));
+  return rows.map((row) => {
+    const { label: device } = parseUserAgent(row.userAgent);
+    return {
+      id: row.id,
+      createdAt: row.createdAt,
+      pathname: row.pathname,
+      referrer: row.referrer,
+      durationMs: row.durationMs,
+      visitorId: row.visitorId,
+      userId: row.userId,
+      userName: row.userName,
+      userEmail: row.userEmail,
+      ipAddress: row.ipAddress,
+      location: formatLocationLabel({
+        city: row.city,
+        region: row.region,
+        country: row.country,
+      }),
+      device,
+      userAgent: row.userAgent,
+    };
+  });
 }
 
 /** Pages ranked by total time on page (durationMs sum). */

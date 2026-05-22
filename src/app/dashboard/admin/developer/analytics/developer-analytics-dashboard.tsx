@@ -5,6 +5,7 @@ import type { DeveloperAnalyticsCopy } from "@/i18n/messages/developer-analytics
 import type {
   LocationMapPoint,
   RecentPageViewRow,
+  TopDeviceRow,
   TopLocationRow,
   TopPageRow,
   UsageOverview,
@@ -102,6 +103,7 @@ export type DeveloperAnalyticsDashboardProps = {
   topPages: TopPageRow[];
   topByTime: TopPageRow[];
   topLocations: TopLocationRow[];
+  topDevices: TopDeviceRow[];
   recent: RecentPageViewRow[];
 };
 
@@ -114,6 +116,7 @@ export function DeveloperAnalyticsDashboard({
   topPages,
   topByTime,
   topLocations,
+  topDevices,
   recent,
 }: DeveloperAnalyticsDashboardProps) {
   const periodLabel = t.periodDays.replace("{days}", String(periodDays));
@@ -159,42 +162,81 @@ export function DeveloperAnalyticsDashboard({
             />
         </section>
 
-        <Panel title={t.topLocations} subtitle={t.topLocationsHint}>
-          <ul className="space-y-3">
-            {topLocations.length === 0 ? (
-              <li className="text-sm text-zinc-500">{empty}</li>
-            ) : (
-              topLocations.map((row, i) => {
-                const maxViews = topLocations[0]?.views ?? 1;
-                const pct = Math.round((row.views / maxViews) * 100);
-                return (
-                  <li key={row.location}>
-                    <div className="flex items-baseline justify-between gap-2 text-sm">
-                      <span className="font-medium text-zinc-800">
-                        <span className="mr-2 tabular-nums text-zinc-400">
-                          {i + 1}.
+        <div className="flex flex-col gap-6">
+          <Panel title={t.topLocations} subtitle={t.topLocationsHint}>
+            <ul className="space-y-3">
+              {topLocations.length === 0 ? (
+                <li className="text-sm text-zinc-500">{empty}</li>
+              ) : (
+                topLocations.map((row, i) => {
+                  const maxViews = topLocations[0]?.views ?? 1;
+                  const pct = Math.round((row.views / maxViews) * 100);
+                  return (
+                    <li key={row.location}>
+                      <div className="flex items-baseline justify-between gap-2 text-sm">
+                        <span className="font-medium text-zinc-800">
+                          <span className="mr-2 tabular-nums text-zinc-400">
+                            {i + 1}.
+                          </span>
+                          {row.location}
                         </span>
-                        {row.location}
-                      </span>
-                      <span className="shrink-0 tabular-nums text-zinc-500">
-                        {row.views}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
-                      <div
-                        className="h-full rounded-full bg-violet-500/80"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <p className="mt-0.5 text-xs text-zinc-400">
-                      {row.uniqueVisitors} {t.table.visitors.toLowerCase()}
-                    </p>
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        </Panel>
+                        <span className="shrink-0 tabular-nums text-zinc-500">
+                          {row.views}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                        <div
+                          className="h-full rounded-full bg-violet-500/80"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <p className="mt-0.5 text-xs text-zinc-400">
+                        {row.uniqueVisitors} {t.table.visitors.toLowerCase()}
+                      </p>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </Panel>
+
+          <Panel title={t.topDevices} subtitle={t.topDevicesHint}>
+            <ul className="space-y-3">
+              {topDevices.length === 0 ? (
+                <li className="text-sm text-zinc-500">{empty}</li>
+              ) : (
+                topDevices.map((row, i) => {
+                  const maxViews = topDevices[0]?.views ?? 1;
+                  const pct = Math.round((row.views / maxViews) * 100);
+                  return (
+                    <li key={row.device}>
+                      <div className="flex items-baseline justify-between gap-2 text-sm">
+                        <span className="font-medium text-zinc-800">
+                          <span className="mr-2 tabular-nums text-zinc-400">
+                            {i + 1}.
+                          </span>
+                          {row.device}
+                        </span>
+                        <span className="shrink-0 tabular-nums text-zinc-500">
+                          {row.views}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                        <div
+                          className="h-full rounded-full bg-sky-500/80"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <p className="mt-0.5 text-xs text-zinc-400">
+                        {row.uniqueVisitors} {t.table.visitors.toLowerCase()}
+                      </p>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </Panel>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -260,13 +302,14 @@ export function DeveloperAnalyticsDashboard({
       <Panel title={t.recent} subtitle={t.recentHint}>
         <DataTable
           hasRows={recent.length > 0}
-          emptyColSpan={6}
+          emptyColSpan={7}
           emptyLabel={empty}
           headers={
             <>
               <th className="py-2 pr-3">{t.table.when}</th>
               <th className="py-2 pr-3">{t.table.page}</th>
               <th className="py-2 pr-3">{t.table.visitor}</th>
+              <th className="py-2 pr-3">{t.table.device}</th>
               <th className="py-2 pr-3">{t.table.location}</th>
               <th className="py-2 pr-3">{t.table.ip}</th>
               <th className="py-2 text-right">{t.table.avgTime}</th>
@@ -299,6 +342,7 @@ export function DeveloperAnalyticsDashboard({
                   </span>
                 )}
               </td>
+              <td className="py-2.5 pr-3 text-zinc-700">{row.device}</td>
               <td className="py-2.5 pr-3 text-zinc-700">{row.location}</td>
               <td className="py-2.5 pr-3 font-mono text-xs text-zinc-500">
                 {row.ipAddress ?? "—"}

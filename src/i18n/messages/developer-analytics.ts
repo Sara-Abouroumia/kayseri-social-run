@@ -20,8 +20,11 @@ export const developerAnalyticsEn = {
   topTime: "Where people stay longest (avg time)",
   topLocations: "Top locations",
   topLocationsHint: "Ranked by page views in the selected period.",
+  topDevices: "Devices & browsers",
+  topDevicesHint:
+    "Parsed from the browser User-Agent on each page view (phone, tablet, or desktop).",
   recent: "Recent activity",
-  recentHint: "Latest page views, newest first.",
+  recentHint: "Latest page views, newest first. Times are Turkey (Europe/Istanbul).",
   table: {
     page: "Page",
     views: "Views",
@@ -29,6 +32,7 @@ export const developerAnalyticsEn = {
     avgTime: "Avg time",
     totalTime: "Total time",
     location: "Location",
+    device: "Device",
     when: "When",
     visitor: "Visitor",
     ip: "IP",
@@ -37,7 +41,7 @@ export const developerAnalyticsEn = {
   },
   backSystem: "← System settings",
   privacyNote:
-    "For privacy, share this dashboard only with bootstrap developers. IP and location are approximate (Vercel/host headers).",
+    "For privacy, share this dashboard only with bootstrap developers. IP and location are approximate (Vercel/host headers). Device labels come from the browser User-Agent string.",
 } as const;
 
 type StringLeaf<T> = T extends string
@@ -71,8 +75,12 @@ export const developerAnalyticsTr: DeveloperAnalyticsCopy = {
   topTime: "En uzun kalınan sayfalar (ort. süre)",
   topLocations: "En çok konum",
   topLocationsHint: "Seçilen dönemdeki sayfa görüntülemesine göre sıralı.",
+  topDevices: "Cihaz ve tarayıcı",
+  topDevicesHint:
+    "Her sayfa görüntülemesindeki tarayıcı User-Agent bilgisinden (telefon, tablet veya masaüstü).",
   recent: "Son etkinlik",
-  recentHint: "En yeni sayfa görüntülemeleri.",
+  recentHint:
+    "En yeni sayfa görüntülemeleri. Saatler Türkiye (Europe/Istanbul) saatine göredir.",
   table: {
     page: "Sayfa",
     views: "Görüntüleme",
@@ -80,6 +88,7 @@ export const developerAnalyticsTr: DeveloperAnalyticsCopy = {
     avgTime: "Ort. süre",
     totalTime: "Toplam süre",
     location: "Konum",
+    device: "Cihaz",
     when: "Zaman",
     visitor: "Ziyaretçi",
     ip: "IP",
@@ -88,5 +97,5 @@ export const developerAnalyticsTr: DeveloperAnalyticsCopy = {
   },
   backSystem: "← Sistem ayarları",
   privacyNote:
-    "Gizlilik için bu paneli yalnızca bootstrap geliştiricilerle paylaşın. IP ve konum yaklaşıktır (Vercel/host başlıkları).",
+    "Gizlilik için bu paneli yalnızca bootstrap geliştiricilerle paylaşın. IP ve konum yaklaşıktır (Vercel/host başlıkları). Cihaz etiketleri tarayıcı User-Agent dizesinden gelir.",
 };

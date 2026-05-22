@@ -1,3 +1,5 @@
+import { SITE_TIME_ZONE } from "@/lib/site-timezone";
+
 export function formatDuration(ms: number): string {
   if (ms <= 0) return "—";
   if (ms < 1000) return `${ms}ms`;
@@ -10,6 +12,7 @@ export function formatDuration(ms: number): string {
 
 export function formatWhen(d: Date, locale: string): string {
   return new Intl.DateTimeFormat(locale === "tr" ? "tr-TR" : "en-GB", {
+    timeZone: SITE_TIME_ZONE,
     dateStyle: "short",
     timeStyle: "medium",
   }).format(d);
