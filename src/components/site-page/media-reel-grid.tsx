@@ -1,5 +1,6 @@
 "use client";
 
+import { MutedLoopVideo } from "@/components/muted-loop-video";
 import { instagramEmbedSrc } from "@/lib/instagram-url";
 
 import type { MediaReelItem } from "./site-page-content";
@@ -8,7 +9,12 @@ type MediaReelGridProps = {
   items: readonly MediaReelItem[];
 };
 
-function MediaReelTile({ url, videoSrc, featured }: MediaReelItem & { featured?: boolean }) {
+function MediaReelTile({
+  url,
+  videoSrc,
+  videoPoster,
+  featured,
+}: MediaReelItem & { featured?: boolean }) {
   const embedSrc = instagramEmbedSrc(url);
 
   if (videoSrc) {
@@ -19,15 +25,10 @@ function MediaReelTile({ url, videoSrc, featured }: MediaReelItem & { featured?:
         rel="noopener noreferrer"
         className={`ksr-mreel${featured ? " ksr-mreel-feat" : ""}`}
       >
-        <video
+        <MutedLoopVideo
           src={videoSrc}
+          poster={videoPoster}
           className="ksr-mreel-video"
-          muted
-          playsInline
-          loop
-          autoPlay
-          preload="metadata"
-          aria-label="Silent looping video"
         />
       </a>
     );
@@ -57,11 +58,10 @@ export function MediaReelGrid({ items }: MediaReelGridProps) {
   if (items.length === 0) return null;
 
   return (
-    <div className="ksr-mediagrid ksr-rev">
+    <div className="ksr-mediagrid">
       {items.map((item, index) => (
         <MediaReelTile key={item.url} {...item} featured={index === 0} />
       ))}
     </div>
   );
 }
-

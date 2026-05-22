@@ -9,6 +9,8 @@ export type MediaReelItem = {
   url: string;
   /** Optional local MP4/WebM for guaranteed muted autoplay loop */
   videoSrc?: string;
+  /** Shown until the clip loads (especially on mobile). */
+  videoPoster?: string;
 };
 
 /** Instagram posts/reels shown in the Media section (section 04). */
@@ -16,5 +18,6 @@ export const MEDIA_REEL_ITEMS: readonly MediaReelItem[] = [
   {
     url: "https://www.instagram.com/reel/DYbuUX5snp6/",
     videoSrc: "/media/night-run.mp4",
+    videoPoster: "/media/night-run-poster.jpg",
   },
 ];

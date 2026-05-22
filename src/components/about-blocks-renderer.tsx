@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { MutedLoopVideo } from "@/components/muted-loop-video";
 import type { AboutBlock } from "@/db/schema/site-about";
 import { cn } from "@/lib/utils";
 
@@ -56,31 +57,6 @@ function FullBleed({ children }: { children: React.ReactNode }) {
     <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen max-w-none overflow-hidden">
       {children}
     </div>
-  );
-}
-
-function MutedLoopVideo({
-  src,
-  poster,
-  className,
-}: {
-  src: string;
-  poster?: string;
-  className?: string;
-}) {
-  return (
-    <video
-      key={src}
-      src={src}
-      poster={poster}
-      className={className}
-      muted
-      playsInline
-      loop
-      autoPlay
-      preload="metadata"
-      aria-label="Silent looping video"
-    />
   );
 }
 
