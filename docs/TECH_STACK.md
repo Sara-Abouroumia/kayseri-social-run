@@ -57,19 +57,9 @@ Practical defaults for implementing [the product vision](./APP.md) while reading
 
 ---
 
-## Deployment (pick one story and document it)
+## Deployment 
 
-| Target | Typical fit |
-| --- | --- |
 | **Vercel** + managed Postgres (Neon, Supabase, RDS, etc.) | Fastest path for Next.js |
-| **Fly.io** / **Railway** / similar | Good when you want Docker-first and explicit networking |
-
----
-
-## Suggested one-liner for a CV
-
-TypeScript full stack on **Next.js** and **PostgreSQL**, with typed APIs and validation, secure auth, realtime coordination for join-gated live sessions, object storage for media, **CI/CD** with tests and static/secret checks, and **observability** for production-like operations.
-
 ---
 
 ## Rollout discipline
