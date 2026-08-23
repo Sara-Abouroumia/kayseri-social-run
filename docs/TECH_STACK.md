@@ -1,4 +1,4 @@
-# Tech stack (recommended)
+# Tech stack (draft)
 
 Practical defaults for implementing [the product vision](./APP.md) while reading well for **senior full-stack** and **DevSecOps** portfolio use. It builds on what the repository already uses where possible.
 
