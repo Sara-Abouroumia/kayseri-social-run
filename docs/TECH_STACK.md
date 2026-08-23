@@ -59,7 +59,7 @@ Practical defaults for implementing [the product vision](./APP.md) while reading
 
 ## Deployment 
 
-| **Vercel** + managed Postgres (Neon, Supabase, RDS, etc.) | Fastest path for Next.js |
+**Vercel** + managed Postgres (Neon, Supabase, RDS, etc.)
 ---
 
 ## Rollout discipline
